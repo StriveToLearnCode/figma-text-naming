@@ -1,4 +1,4 @@
 interface:
   display_name: "Figma 特效文本命名与交付"
-  short_description: "生成完整富文本与中文含义，交给下游直接写入"
-  default_prompt: "使用 $figma-text-naming 扫描并命名 Figma 动态文本，生成包含完整富文本和中文含义的下游文本条目，但不要写入 Pagecenter。"
+  short_description: "只读扫描动态文本，生成稳定 Key、富文本和下游合同"
+  default_prompt: "使用 $figma-text-naming 只读扫描并预览 Figma 动态文本建议，不修改 Figma 或 Pagecenter。"
