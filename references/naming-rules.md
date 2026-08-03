@@ -24,8 +24,11 @@ const normalizeDynamicPlaceholders = (text) => text.replace(dynamicPlaceholders,
 使用以下表达式识别公司当前格式的可读 Key：
 
 ```js
-/^[a-z][a-z0-9]*_[a-z][a-z0-9]*_txt\d{2,}$/
+const readableTextKey = /^[a-z][a-z0-9]*_[a-z][a-z0-9]*_txt\d{2,}$/;
+const stableTextId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 ```
+
+`stableTextId` 接受标准 UUID 变体；它只校验格式，不证明 UUID 来自权威配置或已经持久化。
 
 格式为 `Page_Module_Index`，例如 `tab1_bg1_txt01`：
 
