@@ -51,10 +51,11 @@ member/remaining-open-chances
 
 依次优先缩短为 `reward/badge-rule`、`chest/round`、`chest/round-score`、`ring/proposal`、`member/renew-chance`、`member/open-chance`。`reward/gift-card-name` 和 `reward/outfit-name` 保留对象词，因为删除后会使同一业务域内的奖励对象无法区分。
 
-## 同类对象与确认
+## 同文案样式版本与确认
 
-- 多个节点属于同类对象但表示不同字段，且没有更短稳定的语义词可区分时，使用两位编号，例如 `ring/open-count-01`、`ring/open-count-02`。
-- 编号只由当前 Figma 页面内可观察的共同语义和对象差异支持，不能由位置、扫描顺序或节点标识证明。
+- 多个节点的规范化文字和占位符结构相同但有意义的局部样式不同时，使用两位编号，例如 `ring/open-count-01`、`ring/open-count-02`。
+- 文字和样式相同时统一使用无编号名称，例如 `ring/open-count`，即使节点分别位于 158、388 等不同业务区域。
+- 编号只区分样式版本，不能由 Frame、组件区域、158/388 标识、位置、扫描顺序或节点标识证明。
 - 徽章、礼物卡等对象只要候选文本、现有中文名称或精简路径已经说明对象，就直接命名。只有这些 Figma 证据不足或互相冲突时才批量补查一次，之后仍不确定再进入 `confirm`。
 
 ## 组件语义
