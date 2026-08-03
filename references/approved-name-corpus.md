@@ -1,0 +1,116 @@
+# 已批准命名先例
+
+以下 100 条名称是项目先例。为候选命名前先检索本表；业务域和字段用途都匹配时，必须原样复用完整名称。
+
+本表保留历史大小写、缩写、数字和拼写。它们是兼容项，不是新名称的生成模板：没有完全匹配时，回到 [naming-rules.md](naming-rules.md) 生成全小写 kebab-case 名称。
+
+| 序号 | 名称 |
+| --- | --- |
+| 001 | `broadcast/text` |
+| 002 | `lottery/chipShort` |
+| 003 | `lottery/confirm` |
+| 004 | `achievement/card-num` |
+| 005 | `lottery/chip1Short` |
+| 006 | `page/xn` |
+| 007 | `cumulative/next` |
+| 008 | `cumulative/total` |
+| 009 | `timer/time` |
+| 010 | `room/people` |
+| 011 | `txt/countdown` |
+| 012 | `build/lv` |
+| 013 | `achievement/card-not-enough` |
+| 014 | `confirm/lottery` |
+| 015 | `share/nickname` |
+| 016 | `achievement/reward-num` |
+| 017 | `text/reward-name` |
+| 018 | `build/cong2` |
+| 019 | `build/cong3` |
+| 020 | `page/progress` |
+| 021 | `share/date-text` |
+| 022 | `share/title` |
+| 023 | `txt/guarantee` |
+| 024 | `share/time` |
+| 025 | `exchange/limit` |
+| 026 | `share/ring-no` |
+| 027 | `txt/time` |
+| 028 | `build/singleSuccess` |
+| 029 | `info/countdown` |
+| 030 | `txt/receive-num` |
+| 031 | `reward/name` |
+| 032 | `exchange/confirm` |
+| 033 | `share/txt` |
+| 034 | `countdown/time` |
+| 035 | `pass/chip-num` |
+| 036 | `pass/task-name` |
+| 037 | `pass/task-reward` |
+| 038 | `achievement/card-name` |
+| 039 | `achievement/has-chip3` |
+| 040 | `achievement/has-chip4` |
+| 041 | `achievement/probability` |
+| 042 | `confirm/auto-buy` |
+| 043 | `txt/coin` |
+| 044 | `page/countdown` |
+| 045 | `task/progress` |
+| 046 | `text/chip-num` |
+| 047 | `text/time` |
+| 048 | `dialog/add-bless-val` |
+| 049 | `dialog/not-currency` |
+| 050 | `txt/points` |
+| 051 | `scene-share/hello` |
+| 052 | `share/name` |
+| 053 | `countdown/day` |
+| 054 | `mod12/choose-name` |
+| 055 | `txt/progress` |
+| 056 | `txt/round` |
+| 057 | `txt/timer` |
+| 058 | `txt/wait-for-recv` |
+| 059 | `build/cong1` |
+| 060 | `build/value` |
+| 061 | `build/win` |
+| 062 | `page/time` |
+| 063 | `reward/fail` |
+| 064 | `reward/success` |
+| 065 | `scene-show/goods` |
+| 066 | `select/reward-name` |
+| 067 | `count/recv` |
+| 068 | `pullup/progcess` |
+| 069 | `share/no` |
+| 070 | `txt/rank` |
+| 071 | `count/footer-tag` |
+| 072 | `exchange/xn` |
+| 073 | `mod11/need-to-light` |
+| 074 | `rank/family-member-val` |
+| 075 | `record/send` |
+| 076 | `share/get-time` |
+| 077 | `text/num` |
+| 078 | `time/remaining` |
+| 079 | `txt/exchange-confirm` |
+| 080 | `bottom/today-charge-coin-num` |
+| 081 | `broadcast/text2` |
+| 082 | `lottery/card-get-num` |
+| 083 | `page/guaranteed` |
+| 084 | `page/nxn` |
+| 085 | `page/time-left` |
+| 086 | `page/up` |
+| 087 | `progress/value` |
+| 088 | `scene-show/players` |
+| 089 | `text/broadcast` |
+| 090 | `text/distance-score` |
+| 091 | `text/ticket` |
+| 092 | `achievement/composite-success` |
+| 093 | `achievement/res-lose` |
+| 094 | `chip/num` |
+| 095 | `lottery/can-lottery-times` |
+| 096 | `lottery/tip-1` |
+| 097 | `lottery/tip-2` |
+| 098 | `pass/coin` |
+| 099 | `pass/exchange-chip` |
+| 100 | `pass/exchange-confirm` |
+
+## 使用边界
+
+- 同一个语义可能有多个上下文名称，例如倒计时可为 `txt/countdown`、`info/countdown`、`page/countdown` 或 `countdown/time`。必须用父级、组件和相邻文案选择，不能只看中文翻译。
+- 同一个 Key 词可出现在不同业务域，例如 `share/time`、`txt/time`、`text/time`、`page/time`。业务域是名称语义的一部分，不得互换。
+- `reward/name`、`text/reward-name`、`select/reward-name` 分属不同用途；只有对应容器语义明确时才复用。
+- `lottery/tip-1`、`lottery/tip-2` 和 `build/cong1`、`build/cong2`、`build/cong3` 是业务变体，不是样式去重编号。
+- `pullup/progcess` 只在匹配该历史条目时保留；其他“进度”字段使用 `progress`。

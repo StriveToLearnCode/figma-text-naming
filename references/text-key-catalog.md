@@ -1,83 +1,70 @@
 # Figma 文本语义词典
 
-本词典用于从 Figma 可观察证据选择简短的业务域和语义词，不是必须穷举的封闭词表。优先复用已有标准词；只有现有词无法准确表达时才建议新词。
+本词典用于从 Figma 可观察证据选择项目约定的业务域和语义词。命名前必须同时检索 [approved-name-corpus.md](approved-name-corpus.md)；先例是完整名称的最高优先级，本词典只帮助消歧和生成没有先例的新名称。
 
-## 业务域
+## 选择层级
 
-| 业务域 | 适用语义 | 常见 Figma 证据 |
+1. **完整先例**：业务域、字段含义和用途一致时，原样复用完整名称。
+2. **同域词汇**：没有完整匹配时，优先沿用同一业务域已出现的准确词，例如 `lottery/confirm`、`lottery/card-get-num`、`lottery/can-lottery-times`。
+3. **跨域语义词**：不同业务域可以复用含义稳定的词，如 `name`、`time`、`progress`、`confirm`、`success`，但不得连业务域一起照搬。
+4. **新名称**：仍无准确词时，使用 Figma 证据支持的新业务域和全小写 kebab-case 语义键。
+
+不要为了命中词典牺牲准确性。完整文本、中文备注和组件上下文无法唯一选择名称时进入 `confirm`。
+
+## 项目业务域
+
+| 类型 | 已有业务域 | 使用要求 |
 | --- | --- | --- |
-| `coupon` | 优惠券、券领取或券时效 | 优惠券区域、券组件、领取/失效标签 |
-| `reward` | 徽章、礼物卡、服饰等奖励对象 | 奖励区域、奖品列表、领奖组件 |
-| `chest` | 宝箱轮次、轮次积分或宝箱状态 | 宝箱区域、轮次标签、积分组件 |
-| `ring` | 戒指、戒指盒、求婚或开启次数 | 戒指组件、求婚状态、戒指盒标签 |
-| `member` | 会员开启、续期或机会次数 | 会员区域、开通/续期状态 |
-| `lottery` | 抽奖、开奖、抽取次数和结果 | 抽奖、转盘、扭蛋组件 |
-| `rank` | 排名、积分和榜单状态 | 排行榜、名次、积分榜、段位榜 |
-| `task` | 任务进度、完成状态和任务奖励 | 任务、目标、每日或阶段任务区域 |
-| `shop` | 商品价格、库存和限购数量 | 商店、兑换、商品或购买组件 |
+| 活动玩法 | `lottery`、`achievement`、`build`、`cumulative`、`pass`、`exchange` | Figma 组件、父级或相邻文案明确指向对应玩法 |
+| 内容对象 | `reward`、`task`、`rank`、`chip`、`room`、`broadcast` | 候选字段直接描述该对象 |
+| 分享与场景 | `share`、`scene-share`、`scene-show`、`record` | 分享卡片、场景展示或记录区域明确 |
+| 时间与计数 | `timer`、`countdown`、`time`、`progress`、`count` | 该对象本身就是稳定容器，不只是字段的数据类型 |
+| 界面上下文 | `page`、`txt`、`text`、`info`、`confirm`、`dialog`、`bottom`、`select`、`pullup` | Figma 中存在对应的项目组件/容器约定；不得当作无法理解业务时的默认域 |
+| 编号模块 | `mod11`、`mod12` | 只在 Figma 已明确使用该模块标识或复用完整先例时使用 |
 
-业务域以 Figma 中明确的图层、组件或区域名称，以及当前页面中已由 Figma 上下文确认的相同功能为证据。不要用 `板块4`、`tab1` 等位置名创建业务域。
+业务域描述项目中的稳定模块或容器，不要求一定是抽象业务名。`page`、`txt`、`text` 等在本项目中是允许的真实约定；但若 Figma 已明确处于 `lottery`、`achievement` 等业务组件，应优先使用业务域。没有先例的新业务对象可以创建 `coupon`、`ring`、`member` 等全小写 kebab-case 域。
 
-## 推荐短名称
+## 高频语义族
 
-| 名称 | 中文含义 |
-| --- | --- |
-| `coupon/countdown` | 优惠券倒计时 |
-| `reward/badge-rule` | 徽章解锁条件 |
-| `reward/gift-card-name` | 礼物卡名称 |
-| `reward/outfit-name` | 服饰名称 |
-| `chest/round` | 当前轮次 |
-| `chest/round-score` | 当前轮次积分 |
-| `ring/proposal` | 求婚条件 |
-| `ring/open-count` | 戒指盒开启次数 |
-| `member/renew-chance` | 续费获得的开箱机会 |
-| `member/open-chance` | 当前开箱机会 |
-| `lottery/count` | 抽奖次数 |
-| `rank/score` | 排行积分 |
-| `task/progress` | 任务进度 |
+以下分组只用于比较候选，不表示组内名称可以互换：
 
-常用语义词还包括 `name`、`count`、`countdown`、`progress`、`score`、`round`、`price`、`stock`、`multiplier`、`completed`、`claimed` 和 `locked`。`current-count`、`remaining-count`、`total-count` 只有在“当前/剩余/总计”确实用于区分字段时使用，不得互换。
+| 语义族 | 已有写法 | 消歧重点 |
+| --- | --- | --- |
+| 时间 | `timer/time`、`share/time`、`txt/time`、`countdown/time`、`text/time`、`page/time`、`share/get-time`、`time/remaining`、`page/time-left` | 容器域、倒计时/剩余时间/获取时间等用途 |
+| 倒计时 | `txt/countdown`、`info/countdown`、`page/countdown` | 所属组件，不只看显示文本 |
+| 进度 | `page/progress`、`task/progress`、`txt/progress`、`progress/value`、`pullup/progcess` | 玩法进度、页面进度、进度值和历史兼容项 |
+| 名称 | `text/reward-name`、`reward/name`、`select/reward-name`、`pass/task-name`、`achievement/card-name`、`share/name`、`mod12/choose-name` | 对象类型和展示/选择场景 |
+| 数量 | `achievement/card-num`、`achievement/reward-num`、`txt/receive-num`、`pass/chip-num`、`text/chip-num`、`text/num`、`chip/num` | 被计数对象；不要无依据地只用 `num` |
+| 确认 | `lottery/confirm`、`confirm/lottery`、`exchange/confirm`、`txt/exchange-confirm`、`pass/exchange-confirm`、`confirm/auto-buy` | “某模块的确认字段”与“确认弹窗中的业务字段”方向不同 |
+| 结果状态 | `build/win`、`reward/success`、`reward/fail`、`achievement/composite-success`、`achievement/res-lose` | 成功/失败对应的业务动作或结果对象 |
 
-以下名称把可从业务域或上下文得知的信息重复写入，或混入过多条件，应缩短：
+## 词形规则
+
+- `num`、`count`、`times`、`value`、`val` 不自动互换。优先复用同业务域、同对象的先例；没有先例时选择含义最直接的完整英文词。
+- `time`、`timer`、`countdown`、`remaining`、`time-left` 含义不同，必须根据原文和组件用途选择。
+- `txt` 和 `text` 都是批准域，按完整先例和 Figma 容器复用，不做全局统一。
+- `xn`、`nxn`、`lv`、`val`、`recv` 等缩写只在完整先例或同一组件的明确平行约定中使用；新概念默认使用完整英文词。
+- `chipShort`、`singleSuccess` 等 camelCase 只按完整先例复用。新名称不得据此创建新的 camelCase。
+- `progcess` 是历史兼容拼写，只属于 `pullup/progcess`；其他进度字段使用 `progress`。
+- `tip-1`、`tip-2`、`cong1`、`cong2`、`cong3`、`chip1Short`、`text2` 等数字只有在 Figma 能证明业务变体时使用，不得按节点顺序推断。
+
+## 简短与准确
+
+语义键优先保留 1 至 3 个必要词。业务域已表达的对象不在 Key 中机械重复，但删除后会混淆字段时必须保留，例如 `achievement/card-name`、`achievement/reward-num`。
+
+以下做法应避免：
 
 ```text
-reward/badge-unlock-requirement
-chest/current-round
-chest/current-round-points
-ring/proposal-requirement
-member/renewal-open-chances
-member/remaining-open-chances
+lottery/current-available-lottery-times
+achievement/current-reward-number
+share/current-share-time-text
 ```
 
-依次优先缩短为 `reward/badge-rule`、`chest/round`、`chest/round-score`、`ring/proposal`、`member/renew-chance`、`member/open-chance`。`reward/gift-card-name` 和 `reward/outfit-name` 保留对象词，因为删除后会使同一业务域内的奖励对象无法区分。
+已有语义能匹配时分别优先复用 `lottery/can-lottery-times`、`achievement/reward-num`、`share/time`。若原文含义并不一致，则生成准确的新名称，不强行套用。
 
-## 同文案样式版本与确认
+## 当前名称治理
 
-- 多个节点的规范化文字和占位符结构相同但有意义的局部样式不同时，使用两位编号，例如 `ring/open-count-01`、`ring/open-count-02`。
-- 文字和样式相同时统一使用无编号名称，例如 `ring/open-count`，即使节点分别位于 158、388 等不同业务区域。
-- 编号只区分样式版本，不能由 Frame、组件区域、158/388 标识、位置、扫描顺序或节点标识证明。
-- 徽章、礼物卡等对象只要候选文本、现有中文名称或精简路径已经说明对象，就直接命名。只有这些 Figma 证据不足或互相冲突时才批量补查一次，之后仍不确定再进入 `confirm`。
-
-## 组件语义
-
-| 组件 | 常见独立语义 |
-| --- | --- |
-| 抽奖 | 抽奖次数、倒计时、奖品名称 |
-| 奖励 | 奖励名称、数量、轮次、积分、领取状态 |
-| 任务 | 任务进度、奖励数量、完成状态 |
-| 排行 | 当前名次、榜单积分 |
-| 商店 | 商品价格、库存、剩余可购次数 |
-
-组件名称只是证据之一。文案出现“奖励”不等于业务域一定是 `reward`；抽奖组件中的奖品名称可属于 `lottery`。只有占位符时，必须结合写回前中文图层名、祖先、相邻文案、组件或变体判断，否则进入 `confirm`。
-
-## 已有合法名称
-
-- 当前名称只有在格式合法、简短、与 Figma 可观察语义一致且复用关系正确时才保留。
-- 历史名称不享有额外优先级，也不能作为自身语义正确的证明。
-- 当前名称与可观察语义不一致时进入 `confirm`，不得强制保留。
-
-## 词条治理
-
-- 有意义的写回前图层名可作为证据；自动名称、纯占位符和通用容器名不构成证据。
-- 优先选择能区分字段的最短词，不为避免冲突发明同义词。
-- 新词应有明确、可复用的业务含义；孤立或含义不清的文本等待用户确认。
+- 当前名称精确命中先例，且 Figma 语义、用途和去重关系一致时保留。
+- 当前名称未命中先例但符合新名称规则时，可以保留；先例不是封闭白名单。
+- 当前名称与某条先例拼写接近但不完全一致时，不自动纠正。先用 Figma 证据确认是否为同一字段；确认后采用先例原文，否则进入 `confirm`。
+- 历史名称不能单独证明自身正确；文本、中文备注或组件上下文与其冲突时进入 `confirm`。
