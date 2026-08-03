@@ -16,11 +16,11 @@
 | `task` | 任务进度、完成状态和任务奖励 | 任务、目标、每日或阶段任务区域 |
 | `shop` | 商品价格、库存和限购数量 | 商店、兑换、商品或购买组件 |
 
-业务域以 Figma 中明确的图层、组件或区域名称，以及同页已由 Figma 上下文确认的相同功能为证据。不要用 `板块4`、`tab1` 等位置名创建业务域。
+业务域以 Figma 中明确的图层、组件或区域名称，以及当前页面中已由 Figma 上下文确认的相同功能为证据。不要用 `板块4`、`tab1` 等位置名创建业务域。
 
-## 推荐短 Key
+## 推荐短名称
 
-| Key | 中文含义 |
+| 名称 | 中文含义 |
 | --- | --- |
 | `coupon/countdown` | 优惠券倒计时 |
 | `reward/badge-rule` | 徽章解锁条件 |
@@ -38,25 +38,23 @@
 
 常用语义词还包括 `name`、`count`、`countdown`、`progress`、`score`、`round`、`price`、`stock`、`multiplier`、`completed`、`claimed` 和 `locked`。`current-count`、`remaining-count`、`total-count` 只有在“当前/剩余/总计”确实用于区分字段时使用，不得互换。
 
-以下名称把可从业务域或上下文得知的信息重复写入，或混入了过多条件，应缩短：
+以下名称把可从业务域或上下文得知的信息重复写入，或混入过多条件，应缩短：
 
 ```text
 reward/badge-unlock-requirement
 chest/current-round
 chest/current-round-points
 ring/proposal-requirement
-ring/box-388-open-count
-ring/box-158-open-count
 member/renewal-open-chances
 member/remaining-open-chances
 ```
 
-依次优先缩短为 `reward/badge-rule`、`chest/round`、`chest/round-score`、`ring/proposal`、`ring/open-count-388`、`ring/open-count-158`、`member/renew-chance`、`member/open-chance`。`reward/gift-card-name` 和 `reward/outfit-name` 保留对象词，因为删除后会使同一业务域内的奖励对象无法区分。
+依次优先缩短为 `reward/badge-rule`、`chest/round`、`chest/round-score`、`ring/proposal`、`member/renew-chance`、`member/open-chance`。`reward/gift-card-name` 和 `reward/outfit-name` 保留对象词，因为删除后会使同一业务域内的奖励对象无法区分。
 
 ## 同类对象与确认
 
-- 戒指盒开启次数：主要依据是两个节点分别位于 `158`、`388` 戒指盒的 Figma 上下文。若有意义名称、直接祖先、相邻标签、组件或变体明确包含这些稳定业务标识，分别使用 `ring/open-count-158`、`ring/open-count-388`。数字放在共同语义之后。只补查这两个相关节点；颜色差异只能辅助判断，不能作为主要命名依据。
-- 若 `158`、`388` 只是画布位置、临时序号或无语义数字，使用稳定两位编号 `ring/open-count-01`、`ring/open-count-02`。
+- 多个节点属于同类对象但表示不同字段，且没有更短稳定的语义词可区分时，使用两位编号，例如 `ring/open-count-01`、`ring/open-count-02`。
+- 编号只由当前 Figma 页面内可观察的共同语义和对象差异支持，不能由位置、扫描顺序或节点标识证明。
 - 徽章、礼物卡等对象只要候选文本、现有中文名称或精简路径已经说明对象，就直接命名。只有这些 Figma 证据不足或互相冲突时才批量补查一次，之后仍不确定再进入 `confirm`。
 
 ## 组件语义
@@ -71,19 +69,11 @@ member/remaining-open-chances
 
 组件名称只是证据之一。文案出现“奖励”不等于业务域一定是 `reward`；抽奖组件中的奖品名称可属于 `lottery`。只有占位符时，必须结合写回前中文图层名、祖先、相邻文案、组件或变体判断，否则进入 `confirm`。
 
-## 固定兼容键
+## 已有合法名称
 
-仅在页面范围标识为 `u32fEVPo`，且当前 Figma 上下文能够确认既有含义一致时，以下本地映射优先于通用新 Key：
-
-| Key | 必须确认的含义 |
-| --- | --- |
-| `txt/progress` | 当前能量或进度值 |
-| `txt/treasury` | 当前宝库或财富值 |
-| `txt/had-send` | 未触发奖励时的已赠送数量 |
-| `txt/times` | 奖励倍率 |
-| `txt/lottery` | 当前抽奖次数 |
-
-它们是固定兼容项，不是新命名模板。当前节点名称已经等于兼容键时，复核语义后状态使用 `skip`，不得再次计划改名；当前名称不能反向证明语义正确。上下文不一致时按普通规则命名或进入 `confirm`。
+- 当前名称只有在格式合法、简短、与 Figma 可观察语义一致且复用关系正确时才保留。
+- 历史名称不享有额外优先级，也不能作为自身语义正确的证明。
+- 当前名称与可观察语义不一致时进入 `confirm`，不得强制保留。
 
 ## 词条治理
 
