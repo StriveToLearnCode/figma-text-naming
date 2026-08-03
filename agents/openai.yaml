@@ -1,4 +1,4 @@
 interface:
   display_name: "Figma 文本命名"
   short_description: "按公司可读 Key 规范扫描并命名 Figma 动态文本"
-  default_prompt: "使用 $figma-text-naming 扫描 Figma 翻译文本，按 Page_Module_txtNN 生成可读 Key 并跟踪稳定 UUID；仅在我明确要求时原子写回。"
+  default_prompt: "使用 $figma-text-naming 扫描 Figma 动态文本并生成稳定的 Page_Module_txtNN 图层名称；我要求写入时直接改名，并按当前能力回读验证。"
