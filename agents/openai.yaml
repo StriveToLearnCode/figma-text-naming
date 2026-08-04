@@ -1,4 +1,4 @@
 interface:
-  display_name: "figma-text-naming"
-  short_description: "提供 Figma 链接即可扫描动态文本并生成稳定命名建议"
-  default_prompt: "使用 $figma-text-naming 只读扫描这个 Figma 链接中的动态文本并预览命名建议，不修改 Figma。"
+  display_name: "Figma 动态文本命名"
+  short_description: "识别 Figma 动态文本并生成或按需写回稳定的业务名称"
+  default_prompt: "使用 $figma-text-naming 处理这个 Figma Design 链接里的动态文本命名。"
