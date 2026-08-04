@@ -1,0 +1,98 @@
+{
+  "skill_name": "figma-text-naming",
+  "evals": [
+    {
+      "id": 1,
+      "name": "default-preview-and-candidate-detection",
+      "prompt": "扫描这个 Figma 节点里的动态文本并给命名建议：剩余抽奖次数 xx 次、奖励名称 XX、1x 倍、box、extra。当前图层名都叫 Text。用户没有要求修改 Figma。",
+      "expected_output": "只识别符合占位符规则的动态文本，生成规范业务 Key 和完整中文含义；保持默认只读并给出完整分类与闸门汇总。",
+      "files": [],
+      "expectations": [
+        "识别“剩余抽奖次数 xx 次”和“奖励名称 XX”为候选",
+        "不把“1x 倍”“box”“extra”识别为候选",
+        "剩余抽奖次数使用 lottery/remaining-draw-count",
+        "奖励名称使用 reward/name",
+        "占位符在展示文本和中文含义中统一为 {{}}",
+        "明确说明处于 preview 且未写回 Figma",
+        "汇报 rename、keep、skip、confirm 和完整性闸门结果"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "deduplicate-within-page-only",
+      "prompt": "同一 Figma 页面中两个已选扫描根节点各有一个“当前次数：xx”，文字颜色、字号、字重和作用范围完全相同；另一个页面也有相同节点。请只读去重并给命名结果。",
+      "expected_output": "同页且位于本次选中范围的两个候选合并为一组并共用一个 Key；不同页面不跨页去重；用户报告按组显示而内部仍逐节点分类。",
+      "files": [],
+      "expectations": [
+        "同一页面两个扫描根节点中的相同文字和样式被判定为 same",
+        "同组候选共用一个建议 Key且主表只显示一行",
+        "组内每个节点仍分别得到 rename、keep、skip 或 confirm 动作",
+        "另一个页面的候选不与当前页面自动去重",
+        "不使用 Frame、位置、节点顺序或 nodeId 改变去重结果",
+        "明确说明未写回 Figma"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "style-variants-and-missing-style-data",
+      "prompt": "三个候选文字都是“开启宝箱 xx 次”。A 的 xx 为金色，B 的 xx 为紫色，C 缺少 styled text segments。三者业务语义相同。请生成命名建议，不写回。",
+      "expected_output": "A、B 因有效局部样式不同拆为稳定样式版本，C 因样式证据不足进入 confirm；不得按视觉位置编号。",
+      "files": [],
+      "expectations": [
+        "A 和 B 被判定为不同样式组",
+        "A 和 B 使用共同基础名称加稳定两位编号 01 和 02",
+        "编号按规范化样式签名稳定分配而不是按 Frame、位置或扫描顺序",
+        "C 被标记为 confirm且说明 styled text segments 不足",
+        "C 不进入写回列表",
+        "完整性报告披露 confirm 数量"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "semantic-audit-and-name-conflicts",
+      "prompt": "审核当前扫描范围：节点 A 名为 lottery/remaining-draw-count，但原文是“当前排名 xx”；节点 B 名为 ranking/current-rank，原文也是“当前排名 xx”且样式与 A 相同；节点 C 原文是“全国排名 xx”，却也建议使用 ranking/current-rank。只检查，不修改。",
+      "expected_output": "不能因格式合法而保留语义错误名称；同组多名需要选出规范名称；不同字段同名冲突必须改用真实语义或进入 confirm。",
+      "files": [],
+      "expectations": [
+        "节点 A 的现有名称虽然格式正确仍因语义错误不能 keep",
+        "A 和 B 属于同一去重组并收敛为一个准确 Key",
+        "节点 C 与当前排名不是同一字段，不能静默共用 ranking/current-rank",
+        "节点 C 应使用 ranking/national-rank或在证据不足时 confirm",
+        "keep 的现有名称参与名称冲突检查",
+        "audit 模式明确不写回 Figma"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "scope-instance-and-completeness-gate",
+      "prompt": "链接选中 Frame A。A 内有可写动态文本、隐藏动态文本和一个实例继承动态文本；同页 Frame B 也有动态文本但不在链接范围。请生成完整处理计划。",
+      "expected_output": "只扫描 Frame A 及其后代且包含隐藏节点；实例继承节点记录但不写；Frame B 不被纳入；所有候选完成唯一分类。",
+      "files": [],
+      "expectations": [
+        "扫描 Frame A 本身及全部后代 TEXT，包括隐藏候选",
+        "不自动扩大到同页 Frame B",
+        "实例继承候选标记 skip并说明不可直接改名",
+        "每个范围内候选只能属于 rename、keep、skip 或 confirm之一",
+        "unclassifiedCandidates 为 0",
+        "outOfScopeChanges 为 0"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "apply-preflight-readback-and-rollback",
+      "prompt": "我明确要求直接写回 12 个已审核通过的动态文本节点。写回前发现第 7 个节点的旧名称已被设计师手动修改；请说明实际执行和最终报告。",
+      "expected_output": "仅在完整性闸门通过后按最多 10 个一批写回；第 7 个节点快照过期时不得覆盖，停止当前及后续批次；回读完整候选并报告部分完成及回滚清单。",
+      "files": [],
+      "expectations": [
+        "apply 模式要求用户明确授权且写回前完整性闸门通过",
+        "每批最多修改 10 个节点",
+        "写入前按 nodeId 复核 characters、oldName、范围和实例状态",
+        "第 7 个节点因 name-changed-since-review 或 stale 被跳过且不覆盖用户改动",
+        "发现 stale 后停止当前批次和后续批次",
+        "最终回读完整候选登记表而不是只读 mutatedNodeIds",
+        "报告成功、跳过、失败数量和已成功项的 old -> new 回滚清单",
+        "结果标记为部分完成，不能宣称全部写回成功"
+      ]
+    }
+  ]
+}
