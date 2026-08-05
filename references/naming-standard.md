@@ -92,7 +92,7 @@ fountain/guarantee-progress
 只能包含一个 `/`，并通过：
 
 ```js
-const canonicalTextKey =
+const canonicalBusinessKey =
   /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*\/[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 ```
 
