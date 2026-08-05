@@ -5,49 +5,46 @@
       "id": 1,
       "name": "preview-dynamic-text-names",
       "prompt": "扫描这个 Figma 节点里的动态文本并给出命名建议：剩余抽奖次数 xx 次、奖励名称 XX、1x 倍、box。",
-      "expected_output": "识别真正的动态文本，并只返回其完整中文含义和简洁稳定的业务 Key。",
+      "expected_output": "识别真正的动态文本，按一级板块确定业务域，并返回 rename、keep、skip 或 confirm 结果。",
       "files": [],
       "expectations": [
-        "识别含 xx 和 XX 的两个动态文本",
-        "不把 1x 和 box 识别为动态占位符",
-        "剩余抽奖次数使用 lottery/remaining-draw-count",
-        "奖励名称使用 reward/name",
+        "只根据 text node.characters 识别含 xx 和 XX 的两个动态文本",
+        "不把 1x 和 box 识别为动态文本候选",
+        "剩余抽奖次数在抽奖板块中使用 文案/lottery/remaining-count",
+        "奖励名称在奖励板块中使用 文案/reward/name",
+        "名称必须通过 /^文案\\/[a-z]+\\/[a-z]+(?:-[a-z]+)?$/",
         "中文含义中的占位符统一表示为 {{}}",
-        "没有写回要求时不修改 Figma",
-        "不要求用户补充固定格式的输入",
-        "不要求或读取飞书、需求文档、代码仓库等外部资料"
+        "不读取飞书或其他外部资料"
       ]
     },
     {
       "id": 2,
-      "name": "reuse-and-write-layer-names",
-      "prompt": "给这个 Figma 链接里的动态文字命名。准确的现有图层名称请保留，其中同一个动态文本在三个可写节点中重复出现。",
-      "expected_output": "保留准确的图层名称，为其余动态文本生成业务 Key，并写回三个可写文字图层。",
+      "name": "migrate-review-and-reuse-layer-names",
+      "prompt": "给这个 Figma 链接里的动态文字命名。一个节点叫 lottery/remaining-count，另一个叫 文案/reward/name；同一个奖励名称字段在三个可写节点中重复出现。",
+      "expected_output": "迁移旧两段式名称，完整复核新三段式名称，并让相同业务字段复用同一名称。",
       "files": [],
       "expectations": [
-        "复用准确的现有图层名称",
-        "Figma Design 链接加文字命名意图可以触发并自动写回图层名称，不要求额外的写入提示词",
-        "所有复用名称和新名称都符合权威命名规范",
-        "完全相同的重复文本共用一个业务 Key",
-        "预览可以合并重复文本，但写回时三个可写文字图层都被处理",
-        "只修改需要命名的文字图层名称",
-        "不修改文字内容、样式或布局",
-        "回读确认实际修改结果",
-        "输出聚焦命名结果"
+        "lottery/remaining-count 不能 keep，复核通过后迁移为 文案/lottery/remaining-count",
+        "文案/reward/name 只有在一级板块、业务域、字段语义和冲突检查全部正确时才能 keep",
+        "相同奖励名称字段复用 文案/reward/name",
+        "预览可以合并重复字段，但写回覆盖三个可写文字图层",
+        "只修改 rename 项的文字图层名称并回读确认",
+        "不修改 characters、样式、位置、尺寸、可见性、板块结构或组件关系"
       ]
     },
     {
       "id": 3,
-      "name": "keep-uncertain-items-lightweight",
-      "prompt": "这个 Figma 节点里有几个只显示 XX 的特效文本，请处理。",
-      "expected_output": "识别特效文本触发词并利用可见业务上下文命名；无法判断的项目保持待确认并简短说明原因，不编造名称。",
+      "name": "confirm-uncertain-and-overlong-names",
+      "prompt": "这个 Figma 页面里有板块1和板块2。板块1只有一个显示 xxx 的文本，板块2有一个名为 文案/tab1/remaining-draw-count 的动态文本，请处理。",
+      "expected_output": "把板块名称只用于结构分界；证据不足或无法可靠缩短时输出 confirm，不用弱语义词猜测。",
       "files": [],
       "expectations": [
-        "Figma Design 链接加特效文本触发词可以触发本 Skill",
-        "只读取理解业务含义所需的上下文",
-        "证据充分时生成稳定的业务名称",
-        "证据不足时不使用位置、序号或节点 ID 猜测",
-        "不输出内部账本、固定分类或多余统计"
+        "板块1和板块2只用于确定一级板块边界，不生成 block、section、panel 或 tab 业务域",
+        "纯 xxx 且没有业务语义证据时输出 confirm",
+        "tab1 是错误业务域，三词 semantic-key 也不合规",
+        "semantic-key 超过两个单词时不机械截断",
+        "无法可靠确定业务域或缩短方式时输出 confirm",
+        "不使用 txt、text、value、info、block、section 或 panel 猜测"
       ]
     }
   ]
