@@ -2,7 +2,7 @@ export const DYNAMIC_PLACEHOLDER_PATTERN =
   /(^|[^A-Za-z0-9])(?:x{2,}|X+)(?=$|[^A-Za-z0-9])/;
 
 export const CANONICAL_NAME_PATTERN =
-  /^文案\/[a-z]+\/[a-z]+(?:-[a-z]+)?$/;
+  /^文案\/[a-z]+(?:-[a-z]+)?\/[a-z]+(?:-[a-z]+)?$/;
 
 const WEAK_BUSINESS_DOMAINS = new Set([
   "txt",
@@ -77,9 +77,13 @@ export function validateDynamicTextName(name) {
     addError(errors, "missing-fixed-prefix");
   }
 
-  if (!/^[a-z]+$/.test(businessDomain ?? "")) {
-    addError(errors, "business-domain-must-be-one-lowercase-word");
-  } else if (WEAK_BUSINESS_DOMAINS.has(businessDomain)) {
+  if (!/^[a-z]+(?:-[a-z]+)?$/.test(businessDomain ?? "")) {
+    addError(errors, "business-domain-must-be-one-or-two-lowercase-words");
+  } else if (
+    businessDomain
+      .split("-")
+      .some((word) => WEAK_BUSINESS_DOMAINS.has(word))
+  ) {
     addError(errors, "weak-business-domain-not-allowed");
   }
 
@@ -105,6 +109,40 @@ export function validateDynamicTextName(name) {
       ? { businessDomain, semanticKey }
       : {}),
   };
+}
+
+export function toPageCenterKey(name) {
+  const validation = validateDynamicTextName(name);
+  if (!validation.valid) {
+    throw new TypeError(`invalid-dynamic-text-name: ${name}`);
+  }
+
+  return name.slice("文案/".length);
+}
+
+export function findPageCenterKeyConflicts(entries) {
+  if (!Array.isArray(entries)) {
+    throw new TypeError("pc-entries-must-be-an-array");
+  }
+
+  const htmlByKey = new Map();
+  const conflictKeys = new Set();
+
+  for (const entry of entries) {
+    const key = toPageCenterKey(entry?.name);
+    if (typeof entry?.html !== "string") {
+      throw new TypeError(`pc-html-must-be-a-string: ${key}`);
+    }
+
+    const existingHtml = htmlByKey.get(key);
+    if (existingHtml !== undefined && existingHtml !== entry.html) {
+      conflictKeys.add(key);
+    } else if (existingHtml === undefined) {
+      htmlByKey.set(key, entry.html);
+    }
+  }
+
+  return [...conflictKeys].sort();
 }
 
 function contextChecks(input) {
@@ -148,6 +186,42 @@ export function assessDynamicText(input) {
         result: "confirm",
         reasonCodes: ["shared-field-name-invalid", ...sharedValidation.errors],
       };
+    }
+
+    if (input.pcUploadRequested === true) {
+      if (typeof input.pcHtmlEquivalent !== "boolean") {
+        return {
+          result: "confirm",
+          reasonCodes: ["pc-html-equivalence-not-verified"],
+        };
+      }
+
+      if (input.pcHtmlEquivalent === false) {
+        const variantName = input.presentationVariantName;
+        if (typeof variantName !== "string" || variantName === sharedName) {
+          return {
+            result: "confirm",
+            reasonCodes: ["distinct-pc-html-requires-stable-context-name"],
+          };
+        }
+
+        const variantValidation = validateDynamicTextName(variantName ?? "");
+        if (!variantValidation.valid) {
+          return {
+            result: "confirm",
+            reasonCodes: [
+              "distinct-pc-html-requires-stable-context-name",
+              ...variantValidation.errors,
+            ],
+          };
+        }
+
+        if (currentValidation.valid && input.currentName === variantName) {
+          return { result: "keep", name: variantName, reasonCodes: [] };
+        }
+
+        return { result: "rename", name: variantName, reasonCodes: [] };
+      }
     }
 
     if (currentValidation.valid && input.currentName === sharedName) {

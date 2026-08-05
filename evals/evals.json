@@ -62,6 +62,22 @@
         "只有完整中文含义列使用中文翻译并把占位符表示为 {{}}",
         "合并相同业务字段时仍逐项列出不同的 characters 原文"
       ]
+    },
+    {
+      "id": 5,
+      "name": "split-page-center-keys-for-presentation-conflicts",
+      "prompt": "给 Figma 动态文字命名并上传 PC。普通活动页和语音房画面都有 أفضل مستخدم: XXX جوهرة，业务含义相同，但生成 HTML 的字号分别是 0.22rem 和 0.20rem。",
+      "expected_output": "在任何 PC 写入前识别 HTML 冲突，保留普通活动页名称，并使用稳定语音房场景限定拆分另一个名称和 key。",
+      "files": [],
+      "expectations": [
+        "先生成并比较两个节点的完整 HTML，再确定名称能否复用",
+        "普通活动页保留 文案/ranking/jewel-count",
+        "语音房版本使用 文案/voice-ranking/jewel-count",
+        "PC key 分别为 ranking/jewel-count 和 voice-ranking/jewel-count",
+        "不使用 small、0.20rem、节点 ID、Frame 编号或无语义数字拆分名称",
+        "不得选择其中一个字号覆盖同一个 PC key",
+        "上传前检查完整 key 到 HTML 映射，确认无冲突后才执行上传并回读"
+      ]
     }
   ]
 }

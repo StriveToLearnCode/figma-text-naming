@@ -3,7 +3,9 @@ import test from "node:test";
 
 import {
   assessDynamicText,
+  findPageCenterKeyConflicts,
   isDynamicTextCandidate,
+  toPageCenterKey,
   validateDynamicTextName,
 } from "../scripts/dynamic-text-naming.mjs";
 
@@ -109,6 +111,81 @@ test("reuses the same name for the same business field", () => {
   }
 });
 
+test("reuses a PC key only when the generated HTML is identical", () => {
+  assert.deepEqual(
+    assessDynamicText({
+      characters: "xxx ألماس",
+      currentName: "Text 1",
+      sameBusinessFieldName: "文案/reward/estimated-amount",
+      pcUploadRequested: true,
+      pcHtmlEquivalent: true,
+      ...verifiedContext,
+    }),
+    {
+      result: "rename",
+      name: "文案/reward/estimated-amount",
+      reasonCodes: [],
+    },
+  );
+});
+
+test("uses a stable context name when the same field has different PC HTML", () => {
+  assert.deepEqual(
+    assessDynamicText({
+      characters: "xxx ألماس",
+      currentName: "文案/reward/estimated-amount",
+      sameBusinessFieldName: "文案/reward/estimated-amount",
+      pcUploadRequested: true,
+      pcHtmlEquivalent: false,
+      presentationVariantName: "文案/voice-reward/estimated-amount",
+      ...verifiedContext,
+    }),
+    {
+      result: "rename",
+      name: "文案/voice-reward/estimated-amount",
+      reasonCodes: [],
+    },
+  );
+});
+
+test("confirms a PC style split without a stable context name", () => {
+  assert.deepEqual(
+    assessDynamicText({
+      characters: "xxx ألماس",
+      currentName: "文案/reward/estimated-amount",
+      sameBusinessFieldName: "文案/reward/estimated-amount",
+      pcUploadRequested: true,
+      pcHtmlEquivalent: false,
+      ...verifiedContext,
+    }).reasonCodes,
+    ["distinct-pc-html-requires-stable-context-name"],
+  );
+});
+
+test("detects conflicting HTML before Page Center upload", () => {
+  const regularName = "文案/ranking/jewel-count";
+  const voiceName = "文案/voice-ranking/jewel-count";
+  assert.equal(toPageCenterKey(voiceName), "voice-ranking/jewel-count");
+
+  assert.deepEqual(
+    findPageCenterKeyConflicts([
+      { name: regularName, html: '<span style="font-size: 0.22rem">{{}}</span>' },
+      { name: regularName, html: '<span style="font-size: 0.20rem">{{}}</span>' },
+      { name: voiceName, html: '<span style="font-size: 0.20rem">{{}}</span>' },
+    ]),
+    ["ranking/jewel-count"],
+  );
+
+  assert.deepEqual(
+    findPageCenterKeyConflicts([
+      { name: regularName, html: '<span style="font-size: 0.22rem">{{}}</span>' },
+      { name: regularName, html: '<span style="font-size: 0.22rem">{{}}</span>' },
+      { name: voiceName, html: '<span style="font-size: 0.20rem">{{}}</span>' },
+    ]),
+    [],
+  );
+});
+
 test("skips non-candidate English words", () => {
   for (const characters of ["box", "extra", "example", "1x", "x1"]) {
     assert.equal(isDynamicTextCandidate(characters), false);
@@ -127,6 +204,10 @@ test("uses the exact candidate boundary behavior", () => {
 
 test("validator enforces prefix, slashes, word counts, case and numbers", () => {
   assert.equal(validateDynamicTextName("文案/reward/name").valid, true);
+  assert.equal(
+    validateDynamicTextName("文案/voice-ranking/jewel-count").valid,
+    true,
+  );
 
   const invalidNames = [
     "reward/name",
@@ -137,6 +218,8 @@ test("validator enforces prefix, slashes, word counts, case and numbers", () => 
     "文案/coinPool/share-count",
     "文案/Reward/name",
     "文案/tab1/count",
+    "文案/voice-room-ranking/jewel-count",
+    "文案/voice-page/jewel-count",
   ];
 
   for (const name of invalidNames) {
