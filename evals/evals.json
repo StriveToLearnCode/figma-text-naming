@@ -13,6 +13,7 @@
         "剩余抽奖次数在抽奖板块中使用 文案/lottery/remaining-count",
         "奖励名称在奖励板块中使用 文案/reward/name",
         "名称必须通过 /^文案\\/[a-z]+\\/[a-z]+(?:-[a-z]+)?$/",
+        "动态文本列逐字保留 text node.characters，不翻译、概括或规范化",
         "中文含义中的占位符统一表示为 {{}}",
         "不读取飞书或其他外部资料"
       ]
@@ -45,6 +46,21 @@
         "semantic-key 超过两个单词时不机械截断",
         "无法可靠确定业务域或缩短方式时输出 confirm",
         "不使用 txt、text、value、info、block、section 或 panel 猜测"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "preserve-original-script-punctuation-and-case",
+      "prompt": "扫描奖励板块中的动态文本并输出结果表。两个 text node.characters 分别是：لقد أرسلت XX مرة، ولم يتم تفعيل مكافأة خمس نجوم. 和 xx时xx分！",
+      "expected_output": "动态文本列逐字保留每个 characters 原文；中文翻译只出现在完整中文含义列。",
+      "files": [],
+      "expectations": [
+        "动态文本列原样输出 لقد أرسلت XX مرة، ولم يتم تفعيل مكافأة خمس نجوم.，不替换为中文业务标签",
+        "保留阿拉伯语原文、阿拉伯逗号 ،、拉丁句点 . 和大写占位符 XX",
+        "动态文本列原样输出 xx时xx分！，保留小写 xx 和全角感叹号！",
+        "不把动态文本列中的 X、XX 或 xx 替换为 {{}}",
+        "只有完整中文含义列使用中文翻译并把占位符表示为 {{}}",
+        "合并相同业务字段时仍逐项列出不同的 characters 原文"
       ]
     }
   ]
