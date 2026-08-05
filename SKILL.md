@@ -1,6 +1,6 @@
 ---
 name: figma-text-naming
-description: 识别 Figma 中含 `xx`、`XX` 等占位符的动态文字与特效文字，按 `文案/${business-domain}/${semantic-key}` 生成、复核和写回图层名称，并输出 rename、keep、skip、confirm 结果。仅用于用户提供 Figma Design 链接并提到“动态文字命名”“特效文字命名”或“特效文本”时；其他措辞、单独的 Figma 链接以及一般设计查看、实现、修改或普通文字编辑请求不得触发。
+description: 识别 Figma 中含 `xx`、`XX` 等占位符的动态文字与特效文字，按 `文案/${business-domain}/${semantic-key}` 生成、复核和写回图层名称；用户同时要求上传 PC 时，将 Figma 文本样式转换为 HTML 后再上传。仅用于用户提供 Figma Design 链接并提到“动态文字命名”“特效文字命名”或“特效文本”时；其他措辞、单独的 Figma 链接以及一般设计查看、实现、修改或普通文字编辑请求不得触发。
 ---
 
 # Figma 动态文本命名
@@ -15,6 +15,7 @@ description: 识别 Figma 中含 `xx`、`XX` 等占位符的动态文字与特�
 6. 对当前名称和拟写名称运行 `node '<本 Skill 目录>/scripts/validate-dynamic-text-name.mjs' '<name>'`。格式通过后仍须完成业务域、字段语义和冲突检查。
 7. 按规则快照合并相同业务字段并复用同一名称，然后为每个文本节点确定且仅确定一个结果：`rename`、`keep`、`skip` 或 `confirm`。
 8. 用户明确要求只读、预览或不要修改时停止在结果预览。否则只把 `rename` 的名称写入对应文字图层 `node.name`，再回读每个已写节点确认实际名称；`keep`、`skip` 和 `confirm` 不写入。
+9. 用户同时要求上传 PC 时，对 `rename` 和 `keep` 项读取 Figma styled text segments，按分段生成 `<span style="...">`：保留颜色、字号、字重和行高，字号按 `100px = 1rem` 转换，`X` / `XX` / `xx` 等占位符转换为 `{{}}`；多种样式生成多个连续 `<span>`。Page Center key 去掉图层名称的 `文案/` 前缀，`value` 必须使用生成的 HTML，不得直接上传 `characters`。无法取得样式时将该项标记为 `confirm` 并跳过上传。
 
 ## 读取合同
 
@@ -22,6 +23,7 @@ description: 识别 Figma 中含 `xx`、`XX` 等占位符的动态文字与特�
 - 只读取链接范围内完成结构归属和语义判断所需的 Figma 内容。
 - 运行时不读取飞书、需求文档、代码仓库、外部配置或其他资料作为命名证据。
 - 当前名称即使格式正确，也必须复核一级板块、业务域、字段语义和冲突；只有四项全部正确才能 `keep`。
+- styled text segments 仅在用户要求上传 PC 时读取，并且只用于生成 HTML，不作为命名证据。
 
 ## 写入合同
 
@@ -34,5 +36,6 @@ description: 识别 Figma 中含 `xx`、`XX` 等占位符的动态文字与特�
 
 - 对候选输出动态文本、完整中文含义、结果和名称；“动态文本”必须逐字复制 `node.characters`，保留原语言、标点、大小写、空白、换行和占位符写法，不得翻译、概括、纠错或规范化；`confirm` 只给简短待确认原因。
 - 相同业务字段可合并预览，但“动态文本”必须逐项列出组内每个不同的原文，不得用中文业务标签代替；写回结果必须覆盖组内每个可写文字节点。
+- 上传 PC 时额外输出生成的 key、HTML value 和实际上传结果；不得把纯文本报告为 HTML 上传成功。
 - 除非用户要求，不输出内部账本、置信度、样式签名、节点 ID、统计或执行日志。
 - 没有候选时用一句话说明。
