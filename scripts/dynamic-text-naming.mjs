@@ -1,8 +1,17 @@
 export const CANONICAL_NAME_PATTERN =
   /^文案\/[a-z]+(?:-[a-z]+)?\/[a-z]+(?:-[a-z]+)?$/;
 
+export const REFERENCE_TEXT_KEY_PATTERN =
+  /^(?!文案\/)(?!\/)(?!.*\/\/)(?!.*\/$)(?=.*\/)[^\u0000-\u001f\u007f]+$/;
+
 export const AUTOMATIC_NAMING_THRESHOLD = 0.9;
 export const RECOMMEND_NAMING_THRESHOLD = 0.7;
+
+export const RENDERING_COMPARISON_STATUSES = new Set([
+  "preview-only",
+  "included-in-slice",
+  "unresolved",
+]);
 
 const WEAK_BUSINESS_DOMAINS = new Set([
   "txt",
@@ -96,6 +105,26 @@ export function validateDynamicTextName(name) {
   };
 }
 
+export function validateReferenceTextKey(key) {
+  if (typeof key !== "string") {
+    return { valid: false, errors: ["reference-key-must-be-string"] };
+  }
+
+  if (key.trim() !== key || !REFERENCE_TEXT_KEY_PATTERN.test(key)) {
+    return { valid: false, errors: ["reference-key-format-invalid"] };
+  }
+
+  return { valid: true, errors: [] };
+}
+
+export function toReferenceLayerName(key) {
+  const validation = validateReferenceTextKey(key);
+  if (!validation.valid) {
+    throw new TypeError(`invalid-reference-key: ${key}`);
+  }
+  return `文案/${key}`;
+}
+
 function requireNonEmptyString(value, field) {
   if (typeof value !== "string" || value.trim().length === 0) {
     throw new TypeError(`${field}-must-be-a-non-empty-string`);
@@ -126,6 +155,33 @@ function requireEvidence(value) {
   return [...value];
 }
 
+function normalizeRenderingComparison(value) {
+  if (value === undefined) return undefined;
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new TypeError("rendering-comparison-must-be-an-object");
+  }
+
+  const previewNodeId = requireNonEmptyString(
+    value.previewNodeId,
+    "rendering-comparison-preview-node-id",
+  );
+  const sliceNodeId = requireNonEmptyString(
+    value.sliceNodeId,
+    "rendering-comparison-slice-node-id",
+  );
+  if (!RENDERING_COMPARISON_STATUSES.has(value.status)) {
+    throw new TypeError("rendering-comparison-status-invalid");
+  }
+
+  return {
+    previewNodeId,
+    sliceNodeId,
+    status: value.status,
+    pairingEvidence: requireEvidence(value.pairingEvidence),
+    comparisonEvidence: requireEvidence(value.comparisonEvidence),
+  };
+}
+
 export function classifyNamingConfidence(confidence) {
   requireConfidence(confidence);
 
@@ -138,7 +194,7 @@ export function classifyNamingConfidence(confidence) {
   return "skip";
 }
 
-export function assessNamingPlanItem(input) {
+export function assessNamingPlanItem(input, context = {}) {
   if (input === null || typeof input !== "object" || Array.isArray(input)) {
     throw new TypeError("naming-plan-item-must-be-an-object");
   }
@@ -150,39 +206,151 @@ export function assessNamingPlanItem(input) {
   if (typeof input.isDynamic !== "boolean") {
     throw new TypeError("is-dynamic-must-be-a-boolean");
   }
-
-  const confidence = requireConfidence(input.confidence);
   const evidence = requireEvidence(input.evidence);
-  const confidenceBand = classifyNamingConfidence(confidence);
+  const renderingComparison = normalizeRenderingComparison(
+    input.renderingComparison,
+  );
   const base = {
     nodeId,
     text: input.text,
     isDynamic: input.isDynamic,
-    confidence,
     evidence,
-    confidenceBand,
+    classification: input.isDynamic ? "dynamic" : "static",
+    ...(renderingComparison === undefined ? {} : { renderingComparison }),
   };
 
   if (typeof input.regionId === "string" && input.regionId.length > 0) {
     base.regionId = input.regionId;
   }
-
   if (!input.isDynamic) {
     return { ...base, result: "skip", reasonCodes: ["not-dynamic"] };
   }
 
-  if (confidenceBand === "skip") {
+  const dynamicEvidence = input.dynamicEvidence;
+  if (
+    !Array.isArray(dynamicEvidence) ||
+    dynamicEvidence.length === 0 ||
+    dynamicEvidence.some(
+      (item) => typeof item !== "string" || item.trim().length === 0,
+    )
+  ) {
     return {
       ...base,
+      result: "confirm",
+      reasonCodes: ["runtime-change-evidence-required"],
+    };
+  }
+
+  const dynamicBase = { ...base, dynamicEvidence: [...dynamicEvidence] };
+  if (typeof input.needsLayerName !== "boolean") {
+    throw new TypeError("needs-layer-name-must-be-a-boolean");
+  }
+  if (!input.needsLayerName) {
+    return {
+      ...dynamicBase,
+      needsLayerName: false,
+      result: "skip",
+      reasonCodes: ["layer-name-not-required"],
+    };
+  }
+
+  const confidence = requireConfidence(input.confidence);
+  const confidenceBand = classifyNamingConfidence(confidence);
+  const namingBase = {
+    ...dynamicBase,
+    needsLayerName: true,
+    confidence,
+    confidenceBand,
+  };
+  if (confidenceBand === "skip") {
+    return {
+      ...namingBase,
       result: "skip",
       reasonCodes: ["confidence-below-recommend-threshold"],
+    };
+  }
+
+  const sourceKey = typeof input.sourceKey === "string" ? input.sourceKey : "";
+  if (context.referenceCatalogProvided === true) {
+    if (sourceKey.length === 0) {
+      return {
+        ...namingBase,
+        result: "skip",
+        reasonCodes: ["no-reference-key-match"],
+      };
+    }
+
+    const sourceValidation = validateReferenceTextKey(sourceKey);
+    if (!sourceValidation.valid) {
+      return {
+        ...namingBase,
+        sourceKey,
+        result: "confirm",
+        reasonCodes: sourceValidation.errors,
+      };
+    }
+
+    if (!context.referenceKeys?.has(sourceKey)) {
+      return {
+        ...namingBase,
+        sourceKey,
+        result: "confirm",
+        reasonCodes: ["reference-key-not-found"],
+      };
+    }
+
+    const expectedName = toReferenceLayerName(sourceKey);
+    if (input.suggestedName !== expectedName) {
+      return {
+        ...namingBase,
+        sourceKey,
+        result: "confirm",
+        reasonCodes: ["reference-key-name-mismatch"],
+      };
+    }
+
+    const sourceBacked = {
+      ...namingBase,
+      semanticId: sourceKey,
+      sourceKey,
+      suggestedName: expectedName,
+    };
+    if (confidenceBand === "recommend") {
+      return {
+        ...sourceBacked,
+        result: "confirm",
+        reasonCodes: ["confidence-needs-confirmation"],
+      };
+    }
+    if (input.currentName === expectedName) {
+      return {
+        ...sourceBacked,
+        result: "keep",
+        name: expectedName,
+        reasonCodes: [],
+      };
+    }
+    return {
+      ...sourceBacked,
+      result: "rename",
+      name: expectedName,
+      reasonCodes: [],
+    };
+  }
+
+  if (sourceKey.length > 0) {
+    return {
+      ...namingBase,
+      sourceKey,
+      result: "confirm",
+      reasonCodes: ["reference-catalog-required"],
     };
   }
 
   const nameValidation = validateDynamicTextName(input.suggestedName);
   if (!nameValidation.valid) {
     return {
-      ...base,
+      ...namingBase,
       result: "confirm",
       reasonCodes: ["suggested-name-invalid", ...nameValidation.errors],
     };
@@ -192,7 +360,7 @@ export function assessNamingPlanItem(input) {
     typeof input.semanticId === "string" ? input.semanticId.trim() : "";
   if (semanticId.length === 0) {
     return {
-      ...base,
+      ...namingBase,
       suggestedName: input.suggestedName,
       result: "confirm",
       reasonCodes: ["semantic-id-required-for-key-validation"],
@@ -200,7 +368,7 @@ export function assessNamingPlanItem(input) {
   }
 
   const withSuggestion = {
-    ...base,
+    ...namingBase,
     semanticId,
     suggestedName: input.suggestedName,
   };
@@ -243,7 +411,49 @@ function markKeyConflict(item) {
   };
 }
 
-export function validateNamingPlan({ items, existingNames = [] }) {
+function buildReferenceCatalog(referenceEntries) {
+  if (referenceEntries === undefined) {
+    return { provided: false, keys: new Set() };
+  }
+  if (!Array.isArray(referenceEntries)) {
+    throw new TypeError("reference-entries-must-be-an-array");
+  }
+
+  const valuesByKey = new Map();
+  for (const entry of referenceEntries) {
+    const key = requireNonEmptyString(entry?.key, "reference-key");
+    const validation = validateReferenceTextKey(key);
+    if (!validation.valid) {
+      throw new TypeError(`invalid-reference-key: ${key}`);
+    }
+    if (typeof entry?.value !== "string") {
+      throw new TypeError(`reference-value-must-be-a-string: ${key}`);
+    }
+
+    const existingValue = valuesByKey.get(key);
+    if (existingValue !== undefined && existingValue !== entry.value) {
+      throw new TypeError(`conflicting-reference-key: ${key}`);
+    }
+    valuesByKey.set(key, entry.value);
+  }
+
+  return { provided: true, keys: new Set(valuesByKey.keys()) };
+}
+
+function hasClaimableName(item, name) {
+  if (typeof name !== "string") return false;
+  if (typeof item.sourceKey === "string") {
+    const validation = validateReferenceTextKey(item.sourceKey);
+    return validation.valid && name === `文案/${item.sourceKey}`;
+  }
+  return validateDynamicTextName(name).valid;
+}
+
+export function validateNamingPlan({
+  items,
+  existingNames = [],
+  referenceEntries,
+}) {
   if (!Array.isArray(items)) {
     throw new TypeError("naming-plan-items-must-be-an-array");
   }
@@ -251,9 +461,14 @@ export function validateNamingPlan({ items, existingNames = [] }) {
     throw new TypeError("existing-names-must-be-an-array");
   }
 
+  const referenceCatalog = buildReferenceCatalog(referenceEntries);
+  const assessmentContext = {
+    referenceCatalogProvided: referenceCatalog.provided,
+    referenceKeys: referenceCatalog.keys,
+  };
   const seenNodeIds = new Set();
   let results = items.map((item) => {
-    const result = assessNamingPlanItem(item);
+    const result = assessNamingPlanItem(item, assessmentContext);
     if (seenNodeIds.has(result.nodeId)) {
       throw new TypeError(`duplicate-node-id: ${result.nodeId}`);
     }
@@ -264,7 +479,7 @@ export function validateNamingPlan({ items, existingNames = [] }) {
   const claimsByName = new Map();
   for (const [index, item] of results.entries()) {
     const name = suggestedNameOf(item);
-    if (typeof name !== "string" || !validateDynamicTextName(name).valid) {
+    if (!hasClaimableName(item, name)) {
       continue;
     }
     const claims = claimsByName.get(name) ?? [];
@@ -275,7 +490,7 @@ export function validateNamingPlan({ items, existingNames = [] }) {
   for (const entry of existingNames) {
     const nodeId = requireNonEmptyString(entry?.nodeId, "existing-node-id");
     const name = requireNonEmptyString(entry?.name, "existing-name");
-    if (!validateDynamicTextName(name).valid || seenNodeIds.has(nodeId)) {
+    if (!hasClaimableName(entry, name) || seenNodeIds.has(nodeId)) {
       continue;
     }
     const claims = claimsByName.get(name) ?? [];
@@ -326,4 +541,36 @@ export function summarizeNamingPlan(results) {
     },
     { scanned: 0, automatic: 0, kept: 0, needsConfirmation: 0, skipped: 0 },
   );
+}
+
+export function summarizeCandidateScan(results) {
+  if (!Array.isArray(results)) {
+    throw new TypeError("naming-plan-results-must-be-an-array");
+  }
+
+  const comparisonPairs = new Set();
+  const summary = {
+    scanned: 0,
+    comparisonPairs: 0,
+    previewOnly: 0,
+    dynamicCandidates: 0,
+    staticSkipped: 0,
+  };
+
+  for (const item of results) {
+    summary.scanned += 1;
+    if (item.isDynamic === true) summary.dynamicCandidates += 1;
+    if (item.isDynamic === false) summary.staticSkipped += 1;
+
+    const comparison = item.renderingComparison;
+    if (comparison !== undefined) {
+      comparisonPairs.add(
+        `${comparison.previewNodeId}\u0000${comparison.sliceNodeId}`,
+      );
+      if (comparison.status === "preview-only") summary.previewOnly += 1;
+    }
+  }
+
+  summary.comparisonPairs = comparisonPairs.size;
+  return summary;
 }

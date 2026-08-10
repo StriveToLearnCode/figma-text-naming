@@ -35,7 +35,7 @@
       "expected_output": "输出一个证据充分的最终命名置信度，不输出 dynamicConfidence 和 namingConfidence 两套分数。",
       "files": [],
       "expectations": [
-        "输出 isDynamic、suggestedName、confidence 和 evidence",
+        "输出 isDynamic、needsLayerName、suggestedName、confidence 和 evidence",
         "建议名称为 文案/recharge/current-target",
         "证据同时覆盖区域、视觉角色、附近文字和值结构",
         "置信度至少 0.90 时才允许自动写回"
@@ -80,6 +80,88 @@
         "confidence < 0.70 的项跳过",
         "输出扫描总数、已自动命名、待确认、跳过和失败数",
         "不为追求 100% 覆盖率编造名称"
+      ]
+    },
+    {
+      "id": 7,
+      "name": "skip-component-owned-reward-fields",
+      "prompt": "奖励列表里有 160 个结构一致的‘道具名称’和 90 个结构一致的‘1x’，请初始化动态文本命名。",
+      "expected_output": "识别这些文本由奖励组件的数据模型直接渲染，不修改任何一个对应图层名。",
+      "files": [],
+      "expectations": [
+        "分别判断 isDynamic 和 needsLayerName",
+        "奖励名称来自 props 或 reward metadata，奖励数量、单位和时长来自接口数据或组件逻辑",
+        "道具名称和 1x 即使属于动态占位也设置 needsLayerName 为 false",
+        "所有这些节点返回 skip，且不生成或写回 文案/reward/item-name 与 文案/reward/item-amount",
+        "不能因为重复结构、变量绑定或取值不同就认定需要图层命名"
+      ]
+    },
+    {
+      "id": 8,
+      "name": "reference-catalog-is-exact-allowlist",
+      "prompt": "请按我提供的 Text Sync 清单复核充值优惠组件。清单包含 recharge/discount-times、recharge/consume-progress 和 member/vip-open-chances；页面还包含固定标题、四档优惠说明、活动时间和导航。",
+      "expected_output": "只给能唯一映射到清单的动态绑定节点命名，并逐字复用清单 key；不为静态文案创造新 key。",
+      "files": [],
+      "expectations": [
+        "把用户提供的 key/value 清单作为自动命名 allowlist",
+        "图层名称逐字使用 文案/${sourceKey}，不得把 member/vip-open-chances 改成 member/open-chance",
+        "四档标题、优惠说明、活动时间和导航没有清单匹配时全部 skip",
+        "通用 {{}}/{{}} 模板必须结合样式和充值区域区分 discount-times 与 consume-progress",
+        "多个 source key 仍无法唯一匹配时返回 confirm，不选择看起来更规范的 key"
+      ]
+    },
+    {
+      "id": 9,
+      "name": "exclude-static-recharge-copy-before-key-generation",
+      "prompt": "只读扫描充值优惠组件：包含 عروض الشحن、يتمتع كل حساب بـ20 فرصة、أثناء فترة النشاط، عندما يصل استهلاك الذهب إلى 550000、فرص الخصم:、0/20、استهلاك الذهب:、22500/550000。先给动态候选，不要写回。",
+      "expected_output": "先排除标题、规则句和 Label，只把两个独立 Value 节点列为动态候选。",
+      "files": [],
+      "expectations": [
+        "عروض الشحن、两条含数字的完整规则句、فرص الخصم: 和 استهلاك الذهب: 全部 isDynamic=false",
+        "static 节点不输出 confidence、needsLayerName、semanticId、sourceKey 或 suggestedName",
+        "0/20 与 22500/550000 分别作为独立 Value 节点进入 dynamic candidates",
+        "每个动态候选提供独立 dynamicEvidence，不能用业务语义理解代替运行时变化证据",
+        "只输出扫描总数、dynamic candidates、static skipped 和候选详情，不执行写回"
+      ]
+    },
+    {
+      "id": 10,
+      "name": "preview-slice-difference-is-overlay-evidence",
+      "prompt": "完整预览和右侧切图都展示同一个充值模块。预览里有标题、Tab、规则说明、按钮文案、0/20 和 22500/550000；对应切图只有背景、边框和装饰。请寻找需要命名的文案。",
+      "expected_output": "先可靠配对预览与切图，把差集标记为前端叠加文字，再用独立运行时证据区分静态文案和动态候选。",
+      "files": [],
+      "expectations": [
+        "用共用资产、尺寸比例和结构锚点中的多项证据配对预览与切图",
+        "为可靠对照记录 previewNodeId、sliceNodeId、status、pairingEvidence 和 comparisonEvidence",
+        "标题、Tab、规则说明和按钮即使是 preview-only 也保持 isDynamic=false",
+        "0/20 和 22500/550000 必须依靠独立 Value 与运行时替换证据进入动态候选",
+        "不能把 preview-only 或切图里没有文字写成唯一 dynamicEvidence"
+      ]
+    },
+    {
+      "id": 11,
+      "name": "preview-only-component-data-still-needs-no-layer-name",
+      "prompt": "完整预览中的奖励卡显示道具名称和 1x，对应切图只有奖励卡底板，因此两段文字都是 preview-only。奖励卡是标准组件，名称和数量来自 reward metadata。请初始化命名。",
+      "expected_output": "识别文字由前端动态叠加，但仍由组件数据模型负责，不生成或写回文案 Key。",
+      "files": [],
+      "expectations": [
+        "把 preview-only 与运行时动态性作为不同结论",
+        "道具名称和 1x 可以 isDynamic=true，但 needsLayerName=false",
+        "两项均返回 skip，且不生成 suggestedName",
+        "不能因为预览有而切图无就绕过组件所有权判断"
+      ]
+    },
+    {
+      "id": 12,
+      "name": "ambiguous-preview-slice-pair-does-not-filter-text",
+      "prompt": "页面有三个风格相似、尺寸接近的切图，但无法确定哪个对应完整预览中的任务区。请继续寻找动态文案。",
+      "expected_output": "不强行建立预览切图对应关系，继续扫描全部 Text，并依靠页面语义和运行时证据判断。",
+      "files": [],
+      "expectations": [
+        "不以风格相似、尺寸接近或画布邻近作为唯一配对依据",
+        "无法唯一配对时不输出虚假的 preview-only 结论",
+        "没有切图对照不缩小全部 Text 扫描范围",
+        "候选仍需满足独立 dynamicEvidence 和 needsLayerName 判断"
       ]
     }
   ]

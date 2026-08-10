@@ -1,12 +1,18 @@
 # Figma 动态文本初始化命名 Skill
 
-`figma-text-naming` 先理解完整 Figma 页面，再批量识别动态文本并生成：
+`figma-text-naming` 先理解完整 Figma 页面，再批量识别动态文本。用户给出 Text Sync 或 Page Center 文案清单时，精确复用实际 key：
+
+```text
+文案/${source-key}
+```
+
+没有清单时才生成：
 
 ```text
 文案/${business-domain}/${semantic-key}
 ```
 
-执行分为两阶段：先用整页截图、完整节点树、全部 Text、位置关系和图层名称建立区域语义地图；再让每批 Text 携带同一份页面语义上下文生成完整 naming plan。不会逐 Text 调 AI，也不会在程序中用占位符、进度、余额或排名正则猜业务场景。
+执行分为四个阶段：先收集页面语义，再把完整预览与对应 `切图/...` 配对并找出前端叠加文字，然后独立判断运行时动态性，最后只为确实需要绑定入口的动态候选生成 naming plan。预览有、切图无只说明文字由前端叠加，不能单独证明动态；标题、导航、按钮、规则、说明、Label、固定日期和固定档位文案仍默认 static。每个候选必须提供独立的 `dynamicEvidence`。提供文案清单后，清单还是自动命名 allowlist，匹配的历史 key 原样保留。
 
 每个节点只使用一个最终命名置信度，并给出实际证据：
 
@@ -19,7 +25,7 @@
 ## 本地校验
 
 ```bash
-node scripts/validate-dynamic-text-name.mjs '文案/recharge/current-target'
+node scripts/validate-dynamic-text-name.mjs '文案/recharge/current-target' # 仅校验无清单时生成的新名称
 node scripts/validate-naming-plan.mjs naming-plan.json
 node --test tests/*.test.mjs
 ```

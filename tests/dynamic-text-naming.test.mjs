@@ -6,9 +6,11 @@ import test, { describe } from "node:test";
 import {
   assessNamingPlanItem,
   classifyNamingConfidence,
+  summarizeCandidateScan,
   summarizeNamingPlan,
   validateDynamicTextName,
   validateNamingPlan,
+  validateReferenceTextKey,
 } from "../scripts/dynamic-text-naming.mjs";
 
 function planItem(overrides = {}) {
@@ -18,6 +20,11 @@ function planItem(overrides = {}) {
     regionId: "region-b",
     semanticId: "recharge:current-target",
     isDynamic: true,
+    dynamicEvidence: [
+      "独立显示 current/target 数值",
+      "同一位置会随运行时充值进度变化",
+    ],
+    needsLayerName: true,
     suggestedName: "文案/recharge/current-target",
     confidence: 0.96,
     evidence: [
@@ -25,6 +32,17 @@ function planItem(overrides = {}) {
       "数值位于进度条上方",
       "附近存在累计充值和阶段奖励文案",
     ],
+    ...overrides,
+  };
+}
+
+function previewSliceComparison(overrides = {}) {
+  return {
+    previewNodeId: "123:400",
+    sliceNodeId: "123:500",
+    status: "preview-only",
+    pairingEvidence: ["共用同一背景实例", "进度条结构一致"],
+    comparisonEvidence: ["切图的对应位置不含该文字"],
     ...overrides,
   };
 }
@@ -45,6 +63,10 @@ describe("single naming confidence", () => {
     assert.throws(
       () => assessNamingPlanItem(planItem({ evidence: [] })),
       /evidence-must-be-a-non-empty-string-array/,
+    );
+    assert.throws(
+      () => assessNamingPlanItem(planItem({ needsLayerName: undefined })),
+      /needs-layer-name-must-be-a-boolean/,
     );
   });
 
@@ -69,12 +91,94 @@ describe("single naming confidence", () => {
 
   test("never names a node that AI classified as static", () => {
     const result = assessNamingPlanItem(
-      planItem({ isDynamic: false, confidence: 0.99 }),
+      planItem({
+        isDynamic: false,
+        dynamicEvidence: undefined,
+        needsLayerName: undefined,
+        confidence: undefined,
+      }),
     );
 
     assert.equal(result.result, "skip");
     assert.deepEqual(result.reasonCodes, ["not-dynamic"]);
     assert.equal("name" in result, false);
+    assert.equal("suggestedName" in result, false);
+    assert.equal("confidence" in result, false);
+    assert.equal("needsLayerName" in result, false);
+  });
+
+  test("keeps preview-to-slice comparison separate from dynamic classification", () => {
+    const staticOverlay = assessNamingPlanItem(
+      planItem({
+        text: "ملاحظة",
+        isDynamic: false,
+        dynamicEvidence: undefined,
+        needsLayerName: undefined,
+        confidence: undefined,
+        renderingComparison: previewSliceComparison(),
+      }),
+    );
+    const dynamicOverlay = assessNamingPlanItem(
+      planItem({ renderingComparison: previewSliceComparison() }),
+    );
+
+    assert.equal(staticOverlay.result, "skip");
+    assert.equal(staticOverlay.renderingComparison.status, "preview-only");
+    assert.equal(dynamicOverlay.result, "rename");
+    assert.equal(dynamicOverlay.renderingComparison.status, "preview-only");
+  });
+
+  test("validates preview-to-slice comparison records without inferring dynamics", () => {
+    for (const renderingComparison of [
+      previewSliceComparison({ status: "unknown" }),
+      previewSliceComparison({ pairingEvidence: [] }),
+      previewSliceComparison({ comparisonEvidence: [] }),
+      previewSliceComparison({ sliceNodeId: "" }),
+    ]) {
+      assert.throws(
+        () => assessNamingPlanItem(planItem({ renderingComparison })),
+        /rendering-comparison|evidence-must-be-a-non-empty-string-array/,
+      );
+    }
+  });
+
+  test("blocks key generation without independent runtime-change evidence", () => {
+    const result = assessNamingPlanItem(
+      planItem({
+        text: "العرض الأول",
+        dynamicEvidence: undefined,
+        evidence: ["明确表示第一档优惠", "业务域可理解"],
+        suggestedName: "文案/first-offer/title",
+        confidence: 0.99,
+      }),
+    );
+
+    assert.equal(result.result, "confirm");
+    assert.deepEqual(result.reasonCodes, ["runtime-change-evidence-required"]);
+    assert.equal("name" in result, false);
+    assert.equal("suggestedName" in result, false);
+    assert.equal("confidence" in result, false);
+  });
+
+  test("never names dynamic data owned by a component", () => {
+    for (const item of [
+      { text: "道具名称", semanticId: "reward:item-name" },
+      { text: "1x", semanticId: "reward:item-amount" },
+    ]) {
+      const result = assessNamingPlanItem(
+        planItem({
+          ...item,
+          suggestedName: undefined,
+          needsLayerName: false,
+          confidence: 0.99,
+        }),
+      );
+
+      assert.equal(result.result, "skip");
+      assert.deepEqual(result.reasonCodes, ["layer-name-not-required"]);
+      assert.equal("name" in result, false);
+      assert.equal("suggestedName" in result, false);
+    }
   });
 });
 
@@ -184,7 +288,13 @@ describe("whole-plan validation", () => {
       ),
       assessNamingPlanItem(planItem({ nodeId: "1:3", confidence: 0.8 })),
       assessNamingPlanItem(
-        planItem({ nodeId: "1:4", isDynamic: false, confidence: 0.99 }),
+        planItem({
+          nodeId: "1:4",
+          isDynamic: false,
+          dynamicEvidence: undefined,
+          needsLayerName: undefined,
+          confidence: undefined,
+        }),
       ),
     ];
 
@@ -194,6 +304,43 @@ describe("whole-plan validation", () => {
       kept: 1,
       needsConfirmation: 1,
       skipped: 1,
+    });
+  });
+
+  test("summarizes dynamic candidates separately from static skips", () => {
+    const results = [
+      assessNamingPlanItem(
+        planItem({
+          nodeId: "1:1",
+          text: "0/20",
+          renderingComparison: previewSliceComparison(),
+        }),
+      ),
+      assessNamingPlanItem(
+        planItem({
+          nodeId: "1:2",
+          text: "22500/550000",
+          renderingComparison: previewSliceComparison(),
+        }),
+      ),
+      assessNamingPlanItem(
+        planItem({
+          nodeId: "1:3",
+          text: "فرص الخصم:",
+          isDynamic: false,
+          dynamicEvidence: undefined,
+          needsLayerName: undefined,
+          confidence: undefined,
+        }),
+      ),
+    ];
+
+    assert.deepEqual(summarizeCandidateScan(results), {
+      scanned: 3,
+      comparisonPairs: 1,
+      previewOnly: 2,
+      dynamicCandidates: 2,
+      staticSkipped: 1,
     });
   });
 
@@ -217,6 +364,132 @@ describe("whole-plan validation", () => {
       skipped: 0,
     });
   });
+
+  test("uses an exact supplied key even when it violates generated-name rules", () => {
+    const [result] = validateNamingPlan({
+      referenceEntries: [
+        {
+          key: "member/vip-open-chances",
+          value: "عدد الفرص الفتح: {{}}",
+        },
+      ],
+      items: [
+        planItem({
+          text: "عدد الفرص الفتح: xx",
+          currentName: "文案/member/open-chance",
+          semanticId: undefined,
+          sourceKey: "member/vip-open-chances",
+          suggestedName: "文案/member/vip-open-chances",
+        }),
+      ],
+    });
+
+    assert.equal(result.result, "rename");
+    assert.equal(result.name, "文案/member/vip-open-chances");
+    assert.equal(result.semanticId, "member/vip-open-chances");
+  });
+
+  test("treats a supplied reference catalog as the automatic naming allowlist", () => {
+    const [result] = validateNamingPlan({
+      referenceEntries: [
+        { key: "recharge/consume-progress", value: "{{}}/{{}}" },
+      ],
+      items: [
+        planItem({
+          text: "عروض الشحن",
+          suggestedName: "文案/recharge/offers-title",
+          sourceKey: undefined,
+        }),
+      ],
+    });
+
+    assert.equal(result.result, "skip");
+    assert.deepEqual(result.reasonCodes, ["no-reference-key-match"]);
+    assert.equal("name" in result, false);
+  });
+
+  test("keeps distinct supplied recharge keys for identical placeholder HTML", () => {
+    const referenceEntries = [
+      { key: "recharge/discount-times", value: "{{}}/{{}}" },
+      { key: "recharge/consume-progress", value: "{{}}/{{}}" },
+    ];
+    const results = validateNamingPlan({
+      referenceEntries,
+      items: [
+        planItem({
+          nodeId: "126:16009",
+          text: "0/20",
+          sourceKey: "recharge/discount-times",
+          suggestedName: "文案/recharge/discount-times",
+          evidence: ["位于“折扣机会”标签旁", "源清单 key 精确匹配"],
+        }),
+        planItem({
+          nodeId: "126:16007",
+          text: "22500/550000",
+          sourceKey: "recharge/consume-progress",
+          suggestedName: "文案/recharge/consume-progress",
+          evidence: ["位于“金币消耗”标签旁", "源清单 key 精确匹配"],
+        }),
+      ],
+    });
+
+    assert.deepEqual(
+      results.map((result) => result.name),
+      ["文案/recharge/discount-times", "文案/recharge/consume-progress"],
+    );
+    assert.deepEqual(
+      results.map((result) => result.result),
+      ["rename", "rename"],
+    );
+  });
+
+  test("rejects invented or mismatched reference keys", () => {
+    const referenceEntries = [
+      { key: "recharge/consume-progress", value: "{{}}/{{}}" },
+    ];
+    const [unknown, mismatched] = validateNamingPlan({
+      referenceEntries,
+      items: [
+        planItem({
+          nodeId: "1:1",
+          sourceKey: "recharge/current-target",
+        }),
+        planItem({
+          nodeId: "1:2",
+          sourceKey: "recharge/consume-progress",
+          suggestedName: "文案/recharge/current-target",
+        }),
+      ],
+    });
+
+    assert.deepEqual(unknown.reasonCodes, ["reference-key-not-found"]);
+    assert.deepEqual(mismatched.reasonCodes, ["reference-key-name-mismatch"]);
+    assert.equal(unknown.result, "confirm");
+    assert.equal(mismatched.result, "confirm");
+  });
+
+  test("requires the catalog whenever a plan claims a source key", () => {
+    const [result] = validateNamingPlan({
+      items: [planItem({ sourceKey: "recharge/consume-progress" })],
+    });
+
+    assert.equal(result.result, "confirm");
+    assert.deepEqual(result.reasonCodes, ["reference-catalog-required"]);
+  });
+
+  test("rejects conflicting values for one supplied key", () => {
+    assert.throws(
+      () =>
+        validateNamingPlan({
+          referenceEntries: [
+            { key: "recharge/consume-progress", value: "{{}}/{{}}" },
+            { key: "recharge/consume-progress", value: "other" },
+          ],
+          items: [],
+        }),
+      /conflicting-reference-key: recharge\/consume-progress/,
+    );
+  });
 });
 
 describe("deterministic scope", () => {
@@ -237,6 +510,26 @@ describe("deterministic scope", () => {
     ]) {
       assert.equal(validateDynamicTextName(name).valid, false, name);
     }
+  });
+
+  test("accepts exact legacy-shaped keys only as reference keys", () => {
+    for (const key of [
+      "member/vip-open-chances",
+      "ring/open-count-01",
+      "txt/lottery",
+    ]) {
+      assert.equal(validateReferenceTextKey(key).valid, true, key);
+      assert.equal(validateDynamicTextName(`文案/${key}`).valid, false, key);
+    }
+
+    for (const key of [
+      "文案/recharge/progress",
+      "/recharge/progress",
+      "recharge//progress",
+      "recharge/progress ",
+      "bad",
+    ])
+      assert.equal(validateReferenceTextKey(key).valid, false, key);
   });
 
   test("contains no text-shape or scenario classifier", async () => {

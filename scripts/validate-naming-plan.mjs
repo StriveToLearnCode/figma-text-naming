@@ -3,6 +3,7 @@
 import { readFile } from "node:fs/promises";
 
 import {
+  summarizeCandidateScan,
   summarizeNamingPlan,
   validateNamingPlan,
 } from "./dynamic-text-naming.mjs";
@@ -26,7 +27,11 @@ try {
 
   console.log(
     JSON.stringify(
-      { results, summary: summarizeNamingPlan(results) },
+      {
+        results,
+        candidateSummary: summarizeCandidateScan(results),
+        summary: summarizeNamingPlan(results),
+      },
       null,
       2,
     ),
