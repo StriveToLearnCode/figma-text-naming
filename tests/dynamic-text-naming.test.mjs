@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  assessDynamicTextCandidate,
   assessDynamicText,
   findPageCenterKeyConflicts,
   isDynamicTextCandidate,
@@ -191,7 +192,7 @@ test("skips non-candidate English words", () => {
     assert.equal(isDynamicTextCandidate(characters), false);
     assert.deepEqual(assessDynamicText({ characters }), {
       result: "skip",
-      reasonCodes: ["characters-not-candidate"],
+      reasonCodes: ["no-dynamic-text-evidence"],
     });
   }
 });
@@ -200,6 +201,76 @@ test("uses the exact candidate boundary behavior", () => {
   for (const characters of ["xx", "XXX", "剩余 xx 次", "X/100"]) {
     assert.equal(isDynamicTextCandidate(characters), true);
   }
+});
+
+test("accepts preview-only text as a dynamic candidate", () => {
+  const input = {
+    characters: "تفاصيل الجائزة",
+    previewSliceComparison: {
+      previewTextPresent: true,
+      sliceTextAbsent: true,
+      sameDesignStateVerified: true,
+      commonRegionVerified: true,
+      textNodeMatched: true,
+    },
+  };
+
+  assert.deepEqual(assessDynamicTextCandidate(input), {
+    candidate: true,
+    sources: ["preview-slice-difference"],
+    reasonCodes: [],
+  });
+  assert.deepEqual(
+    assessDynamicText({
+      ...input,
+      currentName: "Text 128",
+      proposedName: "文案/reward/details",
+      ...verifiedContext,
+    }),
+    {
+      result: "rename",
+      name: "文案/reward/details",
+      reasonCodes: [],
+    },
+  );
+});
+
+test("confirms a preview-slice difference when pairing is incomplete", () => {
+  assert.deepEqual(
+    assessDynamicText({
+      characters: "تفاصيل الجائزة",
+      previewSliceComparison: {
+        previewTextPresent: true,
+        sliceTextAbsent: true,
+        sameDesignStateVerified: false,
+        commonRegionVerified: true,
+        textNodeMatched: false,
+      },
+    }),
+    {
+      result: "confirm",
+      reasonCodes: [
+        "preview-slice-same-design-state-not-verified",
+        "preview-slice-text-node-match-not-verified",
+      ],
+    },
+  );
+});
+
+test("does not treat text baked into both images as dynamic", () => {
+  assert.deepEqual(
+    assessDynamicText({
+      characters: "طريقة اللعب الأولى",
+      previewSliceComparison: {
+        previewTextPresent: true,
+        sliceTextAbsent: false,
+      },
+    }),
+    {
+      result: "skip",
+      reasonCodes: ["no-dynamic-text-evidence"],
+    },
+  );
 });
 
 test("validator enforces prefix, slashes, word counts, case and numbers", () => {

@@ -40,6 +40,52 @@ export function isDynamicTextCandidate(characters) {
   );
 }
 
+export function assessDynamicTextCandidate(input) {
+  if (isDynamicTextCandidate(input?.characters)) {
+    return {
+      candidate: true,
+      sources: ["placeholder"],
+      reasonCodes: [],
+    };
+  }
+
+  const comparison = input?.previewSliceComparison;
+  if (
+    comparison?.previewTextPresent !== true ||
+    comparison?.sliceTextAbsent !== true
+  ) {
+    return {
+      candidate: false,
+      sources: [],
+      reasonCodes: ["no-dynamic-text-evidence"],
+    };
+  }
+
+  const checks = {
+    "same-design-state": comparison.sameDesignStateVerified === true,
+    "common-region": comparison.commonRegionVerified === true,
+    "text-node-match": comparison.textNodeMatched === true,
+  };
+  const failedChecks = Object.entries(checks)
+    .filter(([, passed]) => !passed)
+    .map(([check]) => `preview-slice-${check}-not-verified`);
+
+  if (failedChecks.length > 0) {
+    return {
+      candidate: false,
+      needsConfirmation: true,
+      sources: ["preview-slice-difference"],
+      reasonCodes: failedChecks,
+    };
+  }
+
+  return {
+    candidate: true,
+    sources: ["preview-slice-difference"],
+    reasonCodes: [],
+  };
+}
+
 export function validateDynamicTextName(name) {
   const errors = [];
 
@@ -160,8 +206,16 @@ function contextChecks(input) {
 }
 
 export function assessDynamicText(input) {
-  if (!isDynamicTextCandidate(input.characters)) {
-    return { result: "skip", reasonCodes: ["characters-not-candidate"] };
+  const candidateAssessment = assessDynamicTextCandidate(input);
+  if (candidateAssessment.needsConfirmation === true) {
+    return {
+      result: "confirm",
+      reasonCodes: candidateAssessment.reasonCodes,
+    };
+  }
+
+  if (!candidateAssessment.candidate) {
+    return { result: "skip", reasonCodes: candidateAssessment.reasonCodes };
   }
 
   if (input.evidenceSufficient !== true) {
