@@ -1,53 +1,25 @@
-# Figma 动态文本命名 Skill
+# Figma 动态文本初始化命名 Skill
 
-识别 Figma 中含动态占位符的文本，按 `文案/${business-domain}/${semantic-key}` 生成或复核图层名称，并在默认写入模式下只修改对应文字图层的 `node.name`。
-
-用户同时要求上传 PC 时，Skill 会读取 Figma 文本分段样式，生成带颜色、字号、字重和行高的 `<span>` HTML，并将占位符转换为 `{{}}`。相同业务字段只有在完整 HTML 一致时才复用 key；HTML 不同时使用 `voice-ranking/...` 等稳定场景限定拆分 key，禁止覆盖已有样式。
-
-## 使用方式
-
-提供 Figma Design 链接，并使用“动态文字命名”“特效文字命名”或“特效文本”之一。明确说明只读、预览或不要修改时只返回结果；否则自动写回 `rename` 项并回读确认。
+`figma-text-naming` 先理解完整 Figma 页面，再批量识别动态文本并生成：
 
 ```text
-$figma-text-naming
-https://www.figma.com/design/xxx/activity?node-id=100-200
-
-给这里的动态文字命名。
+文案/${business-domain}/${semantic-key}
 ```
 
-## 结果
+执行分为两阶段：先用整页截图、完整节点树、全部 Text、位置关系和图层名称建立区域语义地图；再让每批 Text 携带同一份页面语义上下文生成完整 naming plan。不会逐 Text 调 AI，也不会在程序中用占位符、进度、余额或排名正则猜业务场景。
 
-- `rename`：当前名称不可保留，新名称已通过全部检查；
-- `keep`：当前名称的格式、一级板块业务域、字段语义和冲突检查全部正确；
-- `skip`：文本 `characters` 不是动态文本候选；
-- `confirm`：业务域、字段语义、缩短方式或冲突处理证据不足。
+每个节点只使用一个最终命名置信度，并给出实际证据：
 
-只读或预览时会返回候选明细，默认使用编号列表，避免长文本、换行和特殊字符破坏 Markdown 表格。执行写回后只返回摘要和异常项，例如：
+- `>= 0.90`：校验通过后自动命名；
+- `0.70-0.89`：推荐但不写入；
+- `< 0.70`：跳过。
 
-```text
-命名完成：共扫描 126 个文本，已正确命名 118 个，跳过 5 个，待确认 1 个，失败 2 个。
-```
-
-其中 `rename` 写回并回读一致以及复核正确的 `keep` 都计入“已正确命名”；`confirm` 计入“待确认”；只有写入失败、回读不一致或其他执行错误才计入“失败”。成功项和跳过项不再逐条输出。上传 PC 时另行汇总上传成功与失败数量，只展开上传失败项。
-
-合法名称示例：
-
-```text
-文案/lottery/remaining-count
-文案/reward/name
-文案/ranking/current-rank
-文案/voice-ranking/jewel-count
-```
-
-旧两段式名称不能保留。例如 `lottery/remaining-count` 在语义复核通过后迁移为 `文案/lottery/remaining-count`。
-
-完整规则以 [本地规则快照](references/dynamic-text-naming-rules.md) 为准。Skill 运行时不读取飞书。
+确定性脚本只校验数据合同、阈值、名称格式、重复节点、重复 Key 和已有名称冲突。纯 Figma 信息不足时保留待确认项，不为实现全覆盖编造名称。
 
 ## 本地校验
 
 ```bash
-node scripts/validate-dynamic-text-name.mjs '文案/lottery/remaining-count'
+node scripts/validate-dynamic-text-name.mjs '文案/recharge/current-target'
+node scripts/validate-naming-plan.mjs naming-plan.json
 node --test tests/*.test.mjs
 ```
-
-校验和写回都不会修改文字 `characters`、样式、位置、尺寸、可见性、一级板块结构或组件关系。PC 上传会先检查完整的 `key -> HTML` 映射；同一 key 对应不同 HTML 时不会执行上传。

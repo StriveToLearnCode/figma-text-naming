@@ -1,243 +1,255 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import test, { describe } from "node:test";
 
 import {
-  assessDynamicText,
-  findPageCenterKeyConflicts,
-  isDynamicTextCandidate,
-  toPageCenterKey,
+  assessNamingPlanItem,
+  classifyNamingConfidence,
+  summarizeNamingPlan,
   validateDynamicTextName,
+  validateNamingPlan,
 } from "../scripts/dynamic-text-naming.mjs";
 
-const verifiedContext = {
-  evidenceSufficient: true,
-  sectionBoundaryVerified: true,
-  businessDomainVerified: true,
-  semanticKeyVerified: true,
-  conflictFree: true,
-};
+function planItem(overrides = {}) {
+  return {
+    nodeId: "123:456",
+    text: "22500/550000",
+    regionId: "region-b",
+    semanticId: "recharge:current-target",
+    isDynamic: true,
+    suggestedName: "文案/recharge/current-target",
+    confidence: 0.96,
+    evidence: [
+      "位于充值进度区域",
+      "数值位于进度条上方",
+      "附近存在累计充值和阶段奖励文案",
+    ],
+    ...overrides,
+  };
+}
 
-test("migrates an old two-part name", () => {
-  assert.deepEqual(
-    assessDynamicText({
-      characters: "剩余 xx 次",
-      currentName: "lottery/remaining-count",
-      proposedName: "文案/lottery/remaining-count",
-      ...verifiedContext,
-    }),
-    {
-      result: "rename",
-      name: "文案/lottery/remaining-count",
-      reasonCodes: [],
-    },
-  );
-});
+describe("single naming confidence", () => {
+  test("uses exact 0.70 and 0.90 boundaries", () => {
+    assert.equal(classifyNamingConfidence(0.9), "automatic");
+    assert.equal(classifyNamingConfidence(0.8999), "recommend");
+    assert.equal(classifyNamingConfidence(0.7), "recommend");
+    assert.equal(classifyNamingConfidence(0.6999), "skip");
+  });
 
-test("keeps a correct three-part name after all context checks", () => {
-  assert.deepEqual(
-    assessDynamicText({
-      characters: "剩余 xx 次",
-      currentName: "文案/lottery/remaining-count",
-      ...verifiedContext,
-    }),
-    {
-      result: "keep",
-      name: "文案/lottery/remaining-count",
-      reasonCodes: [],
-    },
-  );
-});
-
-test("renames a three-word semantic key without mechanical truncation", () => {
-  assert.deepEqual(
-    assessDynamicText({
-      characters: "剩余抽奖次数 xx 次",
-      currentName: "文案/lottery/remaining-draw-count",
-      proposedName: "文案/lottery/remaining-count",
-      ...verifiedContext,
-    }),
-    {
-      result: "rename",
-      name: "文案/lottery/remaining-count",
-      reasonCodes: [],
-    },
-  );
-});
-
-test("rejects tab1 and block as business domains", () => {
-  assert.equal(validateDynamicTextName("文案/tab1/count").valid, false);
-  assert.deepEqual(
-    validateDynamicTextName("文案/block/count").errors,
-    ["weak-business-domain-not-allowed"],
-  );
-
-  assert.equal(
-    assessDynamicText({
-      characters: "剩余 XX 次",
-      currentName: "文案/tab1/count",
-      evidenceSufficient: true,
-      sectionBoundaryVerified: true,
-      businessDomainVerified: false,
-      semanticKeyVerified: true,
-      conflictFree: true,
-    }).result,
-    "confirm",
-  );
-});
-
-test("confirms pure xxx when evidence is insufficient", () => {
-  assert.deepEqual(
-    assessDynamicText({
-      characters: "xxx",
-      currentName: "Text 128",
-      evidenceSufficient: false,
-    }),
-    { result: "confirm", reasonCodes: ["insufficient-evidence"] },
-  );
-});
-
-test("reuses the same name for the same business field", () => {
-  const sharedName = "文案/reward/name";
-  for (const currentName of ["Text 1", "reward/name", "文案/reward/title"]) {
-    assert.deepEqual(
-      assessDynamicText({
-        characters: "奖励 XX",
-        currentName,
-        sameBusinessFieldName: sharedName,
-        ...verifiedContext,
-      }),
-      { result: "rename", name: sharedName, reasonCodes: [] },
+  test("requires one confidence and supporting evidence", () => {
+    assert.throws(
+      () => assessNamingPlanItem(planItem({ confidence: undefined })),
+      /confidence-must-be-between-zero-and-one/,
     );
-  }
+    assert.throws(
+      () => assessNamingPlanItem(planItem({ evidence: [] })),
+      /evidence-must-be-a-non-empty-string-array/,
+    );
+  });
+
+  test("skips low-confidence guesses without exposing a name", () => {
+    const result = assessNamingPlanItem(planItem({ confidence: 0.69 }));
+
+    assert.equal(result.result, "skip");
+    assert.deepEqual(result.reasonCodes, [
+      "confidence-below-recommend-threshold",
+    ]);
+    assert.equal("name" in result, false);
+    assert.equal("suggestedName" in result, false);
+  });
+
+  test("keeps a recommendation but never writes it", () => {
+    const result = assessNamingPlanItem(planItem({ confidence: 0.82 }));
+
+    assert.equal(result.result, "confirm");
+    assert.equal(result.suggestedName, "文案/recharge/current-target");
+    assert.equal("name" in result, false);
+  });
+
+  test("never names a node that AI classified as static", () => {
+    const result = assessNamingPlanItem(
+      planItem({ isDynamic: false, confidence: 0.99 }),
+    );
+
+    assert.equal(result.result, "skip");
+    assert.deepEqual(result.reasonCodes, ["not-dynamic"]);
+    assert.equal("name" in result, false);
+  });
 });
 
-test("reuses a PC key only when the generated HTML is identical", () => {
-  assert.deepEqual(
-    assessDynamicText({
-      characters: "xxx ألماس",
-      currentName: "Text 1",
-      sameBusinessFieldName: "文案/reward/estimated-amount",
-      pcUploadRequested: true,
-      pcHtmlEquivalent: true,
-      ...verifiedContext,
-    }),
-    {
-      result: "rename",
-      name: "文案/reward/estimated-amount",
-      reasonCodes: [],
-    },
-  );
+describe("high-confidence decisions", () => {
+  test("renames a valid high-confidence item", () => {
+    const result = assessNamingPlanItem(
+      planItem({ currentName: "Text 12", confidence: 0.9 }),
+    );
+
+    assert.equal(result.result, "rename");
+    assert.equal(result.name, "文案/recharge/current-target");
+    assert.equal(result.confidence, 0.9);
+    assert.ok(result.evidence.length >= 3);
+  });
+
+  test("keeps an already correct high-confidence name", () => {
+    const result = assessNamingPlanItem(
+      planItem({ currentName: "文案/recharge/current-target" }),
+    );
+
+    assert.equal(result.result, "keep");
+    assert.equal(result.name, "文案/recharge/current-target");
+  });
+
+  test("sends invalid or unverifiable names to confirmation", () => {
+    const invalid = assessNamingPlanItem(
+      planItem({ suggestedName: "文案/recharge/current_target" }),
+    );
+    const missingSemanticId = assessNamingPlanItem(
+      planItem({ semanticId: undefined }),
+    );
+
+    assert.equal(invalid.result, "confirm");
+    assert.ok(invalid.reasonCodes.includes("suggested-name-invalid"));
+    assert.equal(missingSemanticId.result, "confirm");
+    assert.deepEqual(missingSemanticId.reasonCodes, [
+      "semantic-id-required-for-key-validation",
+    ]);
+  });
 });
 
-test("uses a stable context name when the same field has different PC HTML", () => {
-  assert.deepEqual(
-    assessDynamicText({
-      characters: "xxx ألماس",
-      currentName: "文案/reward/estimated-amount",
-      sameBusinessFieldName: "文案/reward/estimated-amount",
-      pcUploadRequested: true,
-      pcHtmlEquivalent: false,
-      presentationVariantName: "文案/voice-reward/estimated-amount",
-      ...verifiedContext,
-    }),
-    {
-      result: "rename",
-      name: "文案/voice-reward/estimated-amount",
-      reasonCodes: [],
-    },
-  );
-});
+describe("whole-plan validation", () => {
+  test("rejects duplicate node records", () => {
+    assert.throws(
+      () => validateNamingPlan({ items: [planItem(), planItem()] }),
+      /duplicate-node-id: 123:456/,
+    );
+  });
 
-test("confirms a PC style split without a stable context name", () => {
-  assert.deepEqual(
-    assessDynamicText({
-      characters: "xxx ألماس",
-      currentName: "文案/reward/estimated-amount",
-      sameBusinessFieldName: "文案/reward/estimated-amount",
-      pcUploadRequested: true,
-      pcHtmlEquivalent: false,
-      ...verifiedContext,
-    }).reasonCodes,
-    ["distinct-pc-html-requires-stable-context-name"],
-  );
-});
-
-test("detects conflicting HTML before Page Center upload", () => {
-  const regularName = "文案/ranking/jewel-count";
-  const voiceName = "文案/voice-ranking/jewel-count";
-  assert.equal(toPageCenterKey(voiceName), "voice-ranking/jewel-count");
-
-  assert.deepEqual(
-    findPageCenterKeyConflicts([
-      { name: regularName, html: '<span style="font-size: 0.22rem">{{}}</span>' },
-      { name: regularName, html: '<span style="font-size: 0.20rem">{{}}</span>' },
-      { name: voiceName, html: '<span style="font-size: 0.20rem">{{}}</span>' },
-    ]),
-    ["ranking/jewel-count"],
-  );
-
-  assert.deepEqual(
-    findPageCenterKeyConflicts([
-      { name: regularName, html: '<span style="font-size: 0.22rem">{{}}</span>' },
-      { name: regularName, html: '<span style="font-size: 0.22rem">{{}}</span>' },
-      { name: voiceName, html: '<span style="font-size: 0.20rem">{{}}</span>' },
-    ]),
-    [],
-  );
-});
-
-test("skips non-candidate English words", () => {
-  for (const characters of ["box", "extra", "example", "1x", "x1"]) {
-    assert.equal(isDynamicTextCandidate(characters), false);
-    assert.deepEqual(assessDynamicText({ characters }), {
-      result: "skip",
-      reasonCodes: ["characters-not-candidate"],
+  test("allows the same key for the same verified business field", () => {
+    const results = validateNamingPlan({
+      items: [
+        planItem({ nodeId: "1:1" }),
+        planItem({ nodeId: "1:2", text: "550000" }),
+      ],
     });
-  }
+
+    assert.deepEqual(
+      results.map((item) => item.result),
+      ["rename", "rename"],
+    );
+  });
+
+  test("confirms duplicate keys that claim different fields", () => {
+    const results = validateNamingPlan({
+      items: [
+        planItem({ nodeId: "1:1" }),
+        planItem({
+          nodeId: "1:2",
+          semanticId: "task:current-target",
+          text: "0/20",
+        }),
+      ],
+    });
+
+    for (const result of results) {
+      assert.equal(result.result, "confirm");
+      assert.ok(result.reasonCodes.includes("key-conflict"));
+      assert.equal("name" in result, false);
+    }
+  });
+
+  test("checks proposed keys against names already outside the plan", () => {
+    const [result] = validateNamingPlan({
+      items: [planItem()],
+      existingNames: [
+        {
+          nodeId: "9:9",
+          name: "文案/recharge/current-target",
+          semanticId: "task:current-target",
+        },
+      ],
+    });
+
+    assert.equal(result.result, "confirm");
+    assert.ok(result.reasonCodes.includes("key-conflict"));
+  });
+
+  test("summarizes the complete plan", () => {
+    const results = [
+      assessNamingPlanItem(planItem({ nodeId: "1:1" })),
+      assessNamingPlanItem(
+        planItem({
+          nodeId: "1:2",
+          currentName: "文案/recharge/current-target",
+        }),
+      ),
+      assessNamingPlanItem(planItem({ nodeId: "1:3", confidence: 0.8 })),
+      assessNamingPlanItem(
+        planItem({ nodeId: "1:4", isDynamic: false, confidence: 0.99 }),
+      ),
+    ];
+
+    assert.deepEqual(summarizeNamingPlan(results), {
+      scanned: 4,
+      automatic: 1,
+      kept: 1,
+      needsConfirmation: 1,
+      skipped: 1,
+    });
+  });
+
+  test("validates a complete plan through the CLI", () => {
+    const cliPath = fileURLToPath(
+      new URL("../scripts/validate-naming-plan.mjs", import.meta.url),
+    );
+    const execution = spawnSync(process.execPath, [cliPath], {
+      input: JSON.stringify({ items: [planItem()] }),
+      encoding: "utf8",
+    });
+
+    assert.equal(execution.status, 0, execution.stderr);
+    const output = JSON.parse(execution.stdout);
+    assert.equal(output.results[0].result, "rename");
+    assert.deepEqual(output.summary, {
+      scanned: 1,
+      automatic: 1,
+      kept: 0,
+      needsConfirmation: 0,
+      skipped: 0,
+    });
+  });
 });
 
-test("uses the exact candidate boundary behavior", () => {
-  for (const characters of ["xx", "XXX", "剩余 xx 次", "X/100"]) {
-    assert.equal(isDynamicTextCandidate(characters), true);
-  }
-});
+describe("deterministic scope", () => {
+  test("enforces canonical names", () => {
+    assert.equal(validateDynamicTextName("文案/reward/name").valid, true);
+    assert.equal(
+      validateDynamicTextName("文案/voice-ranking/jewel-count").valid,
+      true,
+    );
 
-test("validator enforces prefix, slashes, word counts, case and numbers", () => {
-  assert.equal(validateDynamicTextName("文案/reward/name").valid, true);
-  assert.equal(
-    validateDynamicTextName("文案/voice-ranking/jewel-count").valid,
-    true,
-  );
+    for (const name of [
+      "reward/name",
+      "文案/reward/reward-name-extra",
+      "文案/reward/reward_name",
+      "文案/coinPool/share-count",
+      "文案/tab1/count",
+      "文案/block/count",
+    ]) {
+      assert.equal(validateDynamicTextName(name).valid, false, name);
+    }
+  });
 
-  const invalidNames = [
-    "reward/name",
-    "文案/reward",
-    "文案/reward/name/extra",
-    "文案/reward/reward-name-extra",
-    "文案/reward/reward_name",
-    "文案/coinPool/share-count",
-    "文案/Reward/name",
-    "文案/tab1/count",
-    "文案/voice-room-ranking/jewel-count",
-    "文案/voice-page/jewel-count",
-  ];
+  test("contains no text-shape or scenario classifier", async () => {
+    const source = await import("node:fs/promises").then(({ readFile }) =>
+      readFile(
+        new URL("../scripts/dynamic-text-naming.mjs", import.meta.url),
+        "utf8",
+      ),
+    );
 
-  for (const name of invalidNames) {
-    assert.equal(validateDynamicTextName(name).valid, false, name);
-  }
-});
-
-test("a valid-looking current name cannot keep without semantic checks", () => {
-  assert.equal(
-    assessDynamicText({
-      characters: "xx",
-      currentName: "文案/reward/count",
-      evidenceSufficient: true,
-      sectionBoundaryVerified: true,
-      businessDomainVerified: false,
-      semanticKeyVerified: true,
-      conflictFree: true,
-    }).result,
-    "confirm",
-  );
+    assert.doesNotMatch(
+      source,
+      /isDynamicTextCandidate|classifyDynamicTextCandidate|looksLike[A-Z]|DYNAMIC_PLACEHOLDER/i,
+    );
+  });
 });

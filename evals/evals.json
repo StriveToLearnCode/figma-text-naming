@@ -3,83 +3,83 @@
   "evals": [
     {
       "id": 1,
-      "name": "preview-dynamic-text-names",
-      "prompt": "扫描这个 Figma 节点里的动态文本并给出命名建议：剩余抽奖次数 xx 次、奖励名称 XX、1x 倍、box。",
-      "expected_output": "识别真正的动态文本，按一级板块确定业务域，并返回 rename、keep、skip 或 confirm 结果。",
+      "name": "map-page-before-naming-values",
+      "prompt": "使用 figma-text-naming 初始化这个 Figma 页面。顶部任务区有‘完成任务’和 0/20，中部充值区有‘累计充值’、阶段奖励、进度条和 22500/550000，底部是奖励列表。",
+      "expected_output": "先根据整页截图和节点树建立区域语义地图，再在同一批 naming plan 中区分两个进度值。",
       "files": [],
       "expectations": [
-        "只根据 text node.characters 识别含 xx 和 XX 的两个动态文本",
-        "不把 1x 和 box 识别为动态文本候选",
-        "剩余抽奖次数在抽奖板块中使用 文案/lottery/remaining-count",
-        "奖励名称在奖励板块中使用 文案/reward/name",
-        "名称必须通过 /^文案\\/[a-z]+\\/[a-z]+(?:-[a-z]+)?$/",
-        "动态文本列逐字保留 text node.characters，不翻译、概括或规范化",
-        "中文含义中的占位符统一表示为 {{}}",
-        "预览明细默认使用编号列表，不使用 Markdown 表格",
-        "不读取飞书或其他外部资料"
+        "在判断文本前读取整页截图、节点树、全部 Text、位置和父子关系",
+        "建立任务、充值进度和奖励列表区域语义",
+        "把 0/20 的命名证据关联到任务区域",
+        "把 22500/550000 的命名证据关联到充值进度区域",
+        "不靠数字或 current/target 形态单独决定业务域"
       ]
     },
     {
       "id": 2,
-      "name": "migrate-review-and-reuse-layer-names",
-      "prompt": "给这个 Figma 链接里的动态文字命名。一个节点叫 lottery/remaining-count，另一个叫 文案/reward/name；同一个奖励名称字段在三个可写节点中重复出现。",
-      "expected_output": "迁移旧两段式名称，完整复核新三段式名称，并让相同业务字段复用同一名称。",
+      "name": "placeholder-is-evidence-not-rule",
+      "prompt": "请初始化这个 Figma Frame 的动态文本命名。页面中有一个 xxx，但所属 Frame 只有‘板块2’，附近没有业务标题、组件语义或明确标注。",
+      "expected_output": "把 xxx 当成强动态证据，但因完整名称缺乏业务语义而不自动写入。",
       "files": [],
       "expectations": [
-        "lottery/remaining-count 不能 keep，复核通过后迁移为 文案/lottery/remaining-count",
-        "文案/reward/name 只有在一级板块、业务域、字段语义和冲突检查全部正确时才能 keep",
-        "相同奖励名称字段复用 文案/reward/name",
-        "预览可以合并重复字段，但写回覆盖三个可写文字图层",
-        "只修改 rename 项的文字图层名称并回读确认",
-        "写回后的最终回执只汇总扫描、已正确命名、跳过、待确认和失败数量，不输出全量结果表",
-        "只逐项列出待确认或失败的异常项，不逐项列出成功项和跳过项",
-        "不修改 characters、样式、位置、尺寸、可见性、板块结构或组件关系"
+        "扫描该节点而不是用正则直接决定动态性",
+        "证据说明 xxx 支持动态判断但不支持唯一业务域",
+        "置信度低于 0.90",
+        "结果为 confirm 或 skip 且不写回猜测名称"
       ]
     },
     {
       "id": 3,
-      "name": "confirm-uncertain-and-overlong-names",
-      "prompt": "这个 Figma 页面里有板块1和板块2。板块1只有一个显示 xxx 的文本，板块2有一个名为 文案/tab1/remaining-draw-count 的动态文本，请处理。",
-      "expected_output": "把板块名称只用于结构分界；证据不足或无法可靠缩短时输出 confirm，不用弱语义词猜测。",
+      "name": "single-confidence-with-evidence",
+      "prompt": "初始化这个充值活动页。进度条上方的 22500/550000 与‘累计充值’、‘阶段奖励’和‘领取’存在明确结构关系。",
+      "expected_output": "输出一个证据充分的最终命名置信度，不输出 dynamicConfidence 和 namingConfidence 两套分数。",
       "files": [],
       "expectations": [
-        "板块1和板块2只用于确定一级板块边界，不生成 block、section、panel 或 tab 业务域",
-        "纯 xxx 且没有业务语义证据时输出 confirm",
-        "tab1 是错误业务域，三词 semantic-key 也不合规",
-        "semantic-key 超过两个单词时不机械截断",
-        "无法可靠确定业务域或缩短方式时输出 confirm",
-        "不使用 txt、text、value、info、block、section 或 panel 猜测"
+        "输出 isDynamic、suggestedName、confidence 和 evidence",
+        "建议名称为 文案/recharge/current-target",
+        "证据同时覆盖区域、视觉角色、附近文字和值结构",
+        "置信度至少 0.90 时才允许自动写回"
       ]
     },
     {
       "id": 4,
-      "name": "preserve-original-script-punctuation-and-case",
-      "prompt": "扫描奖励板块中的动态文本并输出结果。两个 text node.characters 分别是：لقد أرسلت XX مرة، ولم يتم تفعيل مكافأة خمس نجوم. 和 xx时xx分！",
-      "expected_output": "动态文本列逐字保留每个 characters 原文；中文翻译只出现在完整中文含义列。",
+      "name": "batch-all-text-with-shared-map",
+      "prompt": "这个 Frame 有 2198 个 Text，请使用 figma-text-naming 一次初始化当前页面，不要逐个节点分析。",
+      "expected_output": "完整收集页面上下文后批量生成 naming plan，在全量校验完成前不写回。",
       "files": [],
       "expectations": [
-        "动态文本列原样输出 لقد أرسلت XX مرة، ولم يتم تفعيل مكافأة خمس نجوم.，不替换为中文业务标签",
-        "保留阿拉伯语原文、阿拉伯逗号 ،、拉丁句点 . 和大写占位符 XX",
-        "动态文本列原样输出 xx时xx分！，保留小写 xx 和全角感叹号！",
-        "不把动态文本列中的 X、XX 或 xx 替换为 {{}}",
-        "只有完整中文含义列使用中文翻译并把占位符表示为 {{}}",
-        "合并相同业务字段时仍逐项列出不同的 characters 原文"
+        "扫描全部 Text 节点",
+        "不使用正则预筛候选",
+        "如果需要分批，每批复用同一份完整页面语义地图",
+        "全部批次完成后统一校验重复 Key 和已有名称",
+        "只统一写回高置信 rename 项"
       ]
     },
     {
       "id": 5,
-      "name": "split-page-center-keys-for-presentation-conflicts",
-      "prompt": "给 Figma 动态文字命名并上传 PC。普通活动页和语音房画面都有 أفضل مستخدم: XXX جوهرة，业务含义相同，但生成 HTML 的字号分别是 0.22rem 和 0.20rem。",
-      "expected_output": "在任何 PC 写入前识别 HTML 冲突，保留普通活动页名称，并使用稳定语音房场景限定拆分另一个名称和 key。",
+      "name": "validate-key-reuse-and-conflicts",
+      "prompt": "预览这个 Figma 页面的命名：两个节点是同一充值进度字段，另一个任务进度字段被建议成了相同 Key。",
+      "expected_output": "同一业务字段可以复用 Key，不同业务字段的重复 Key 必须留待确认。",
       "files": [],
       "expectations": [
-        "先生成并比较两个节点的完整 HTML，再确定名称能否复用",
-        "普通活动页保留 文案/ranking/jewel-count",
-        "语音房版本使用 文案/voice-ranking/jewel-count",
-        "PC key 分别为 ranking/jewel-count 和 voice-ranking/jewel-count",
-        "不使用 small、0.20rem、节点 ID、Frame 编号或无语义数字拆分名称",
-        "不得选择其中一个字号覆盖同一个 PC key",
-        "上传前检查完整 key 到 HTML 映射，确认无冲突后才执行上传并回读"
+        "相同业务字段使用相同 semanticId 并允许复用名称",
+        "任务字段与充值字段使用不同 semanticId",
+        "不同 semanticId 占用同一名称时返回 key-conflict",
+        "预览模式不执行任何写入"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "finish-reliable-work-in-one-run",
+      "prompt": "使用 figma-text-naming 初始化当前页面。可靠项直接处理，不确定项留下并说明原因。",
+      "expected_output": "一次执行完成所有可靠命名，并用简洁摘要区分自动命名、待确认和跳过项。",
+      "files": [],
+      "expectations": [
+        "confidence >= 0.90 的有效 rename 统一写回并回读",
+        "0.70 到 0.89 的项只推荐不写入",
+        "confidence < 0.70 的项跳过",
+        "输出扫描总数、已自动命名、待确认、跳过和失败数",
+        "不为追求 100% 覆盖率编造名称"
       ]
     }
   ]
