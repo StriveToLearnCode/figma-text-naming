@@ -1,0 +1,413 @@
+[
+  {
+    "nodeId": "141:11780",
+    "characters": "22500/550000",
+    "section": "预览图/页签1 / 板块2（充值优惠）",
+    "reason": "完整进度槽位的 ancestor、相邻标签、组件职责和区域截图共同证明它是一段需要独立 Key 管理的 UI 文案。",
+    "contextEvidence": [
+      "节点直接位于板块2效果 Frame，且与同级 Text 0/20 并列组成当前状态栏。",
+      "区域截图中它显示在“金币消耗”标签旁，和下方固定的 550000、850000、1500000 优惠条件承担不同结构角色。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "name",
+    "expected": "name"
+  },
+  {
+    "nodeId": "141:11781",
+    "characters": "0/20",
+    "section": "预览图/页签1 / 板块2（充值优惠）",
+    "reason": "当前 Figma 的 ancestor、组件、相邻文案、重复结构和区域截图仍不足以确认它是否需要独立文案 Key，保持待确认。",
+    "contextEvidence": [
+      "节点与 22500/550000 同为板块2的直接子 Text，二者共同构成当前状态栏。",
+      "区域截图中 0/20 紧邻“优惠次数”标签，而下方卡片承载固定优惠条件。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "confirm",
+    "expected": "confirm"
+  },
+  {
+    "nodeId": "141:10258",
+    "characters": "عدد الفرص الفتح: xx",
+    "section": "预览图/页签1 / 板块4（会员与幸运箱）",
+    "reason": "文案中的 xx 明确占据当前可开启次数的数据槽位。",
+    "contextEvidence": [
+      "节点是板块4的直接子 Text，位于幸运箱与开启按钮附近。",
+      "区域截图中该文案承担“当前开启机会数”状态展示，而相邻“开启”“开启记录”为固定操作标签。"
+    ],
+    "structuralAssessment": "eligible",
+    "keySignals": [
+      {
+        "type": "placeholder",
+        "nodeId": "141:10258"
+      }
+    ],
+    "keyDecision": "name",
+    "expected": "name"
+  },
+  {
+    "nodeId": "141:10183",
+    "characters": "تجديد العضوية XX شهر = XX فرصة لفتح صندوق حظ الـ VIP",
+    "section": "预览图/页签1 / 板块4（会员与幸运箱）",
+    "reason": "两个 XX 分别是续订月数和可开启次数的明确替换槽位。",
+    "contextEvidence": [
+      "节点位于完整效果 Frame 内嵌的 切图/背景-1-4 Component，与会员续订说明和幸运箱说明为兄弟文案。",
+      "同一区域存在 1、3、12 个月套餐，两个 XX 在说明结构中分别承担续订月数和开启次数字段。"
+    ],
+    "structuralAssessment": "eligible",
+    "keySignals": [
+      {
+        "type": "placeholder",
+        "nodeId": "141:10183"
+      }
+    ],
+    "keyDecision": "name",
+    "expected": "name"
+  },
+  {
+    "nodeId": "141:6465",
+    "characters": "أزياء xxxxxx\n",
+    "section": "预览图/页签2 / 板块4（花朵宝箱）",
+    "reason": "xxxxxx 明确表示将被实际服饰名称替换的内容槽位。",
+    "contextEvidence": [
+      "节点位于完整效果 Frame 内嵌的 切图/背景-2-4 Component 奖励详情结构中，祖先为奖励卡片分组。",
+      "区域截图中该 Text 出现在具体奖励图片下方，与同组固定数量 1x 分工为名称和数量字段。"
+    ],
+    "structuralAssessment": "eligible",
+    "keySignals": [
+      {
+        "type": "placeholder",
+        "nodeId": "141:6465"
+      }
+    ],
+    "keyDecision": "name",
+    "expected": "name"
+  },
+  {
+    "nodeId": "141:6153",
+    "characters": "بطاقة الهدية\nxxxxxxx",
+    "section": "预览图/页签2 / 板块6（英雄决斗奖励）",
+    "reason": "xxxxxxx 是奖励卡片中待填入的具体礼物卡名称。",
+    "contextEvidence": [
+      "节点位于完整效果 Frame 内的 切图/道具框-道具1 Frame，兄弟 Text 为固定数量 1x。",
+      "同一板块有五个平行道具框，完全相同的位置都使用 بطاقة الهدية + xxxxxxx 的名称槽位。"
+    ],
+    "structuralAssessment": "eligible",
+    "keySignals": [
+      {
+        "type": "placeholder",
+        "nodeId": "141:6153"
+      }
+    ],
+    "keyDecision": "name",
+    "expected": "name"
+  },
+  {
+    "nodeId": "141:6187",
+    "characters": "الجولة الحالية: xx",
+    "section": "预览图/页签2 / 板块6（英雄决斗奖励）",
+    "reason": "xx 明确表示用户当前所处轮次。",
+    "contextEvidence": [
+      "节点是板块6的直接子 Text，兄弟文案包括当前轮次分数标签和 xxx 数值。",
+      "区域截图中它位于重复奖励档位 S 曲线旁，承担当前状态而非某个固定档位的职责。"
+    ],
+    "structuralAssessment": "eligible",
+    "keySignals": [
+      {
+        "type": "placeholder",
+        "nodeId": "141:6187"
+      }
+    ],
+    "keyDecision": "name",
+    "expected": "name"
+  },
+  {
+    "nodeId": "141:6903",
+    "characters": "قيمة الثروة الحالية: xxxx/100",
+    "section": "预览图/页签2 / 板块3（财富值玩法）",
+    "reason": "xxxx 是当前财富值，100 是该玩法的固定目标值。",
+    "contextEvidence": [
+      "节点是板块3的直接子 Text，位于财富容器和玩法说明之间。",
+      "区域截图中它明确标注“当前财富值”，并紧邻对应的进度容器。"
+    ],
+    "structuralAssessment": "eligible",
+    "keySignals": [
+      {
+        "type": "placeholder",
+        "nodeId": "141:6903"
+      }
+    ],
+    "keyDecision": "name",
+    "expected": "name"
+  },
+  {
+    "nodeId": "141:7260",
+    "characters": "قيمة الطاقة الخاصة بي حالياً: XXXX/100",
+    "section": "预览图/页签2 / 板块2（玫瑰水晶球）",
+    "reason": "XXXX 在“我的当前能量 / 目标值”结构中承担当前状态字段。",
+    "contextEvidence": [
+      "节点是板块2的直接子 Text，位于能量进度条下方。",
+      "区域截图中它使用“我的当前能量”语义，并与固定目标 100 组合为状态进度。"
+    ],
+    "structuralAssessment": "eligible",
+    "keySignals": [
+      {
+        "type": "placeholder",
+        "nodeId": "141:7260"
+      }
+    ],
+    "keyDecision": "name",
+    "expected": "name"
+  },
+  {
+    "nodeId": "141:9056",
+    "characters": "عدد مرات الفتح الحالية: xxx",
+    "section": "预览图/页签3 / 板块3（开启玩法）",
+    "reason": "xxx 明确表示当前已开启或可开启次数。",
+    "contextEvidence": [
+      "节点是页签3板块3的直接子 Text，不属于切图陈列或说明区。",
+      "文案自身包含“当前开启次数”语义，xxx 是该状态字段的占位符。"
+    ],
+    "structuralAssessment": "eligible",
+    "keySignals": [
+      {
+        "type": "placeholder",
+        "nodeId": "141:9056"
+      }
+    ],
+    "keyDecision": "name",
+    "expected": "name"
+  },
+  {
+    "nodeId": "141:9998",
+    "characters": "الوقت المتبقي: 99:59:59",
+    "section": "预览图/页签1 / 板块5（礼包）",
+    "reason": "当前 Figma 的 ancestor、组件、相邻文案、重复结构和区域截图仍不足以确认它是否需要独立文案 Key，保持待确认。",
+    "contextEvidence": [
+      "节点是礼包板块的直接子 Text，兄弟 Text 为礼包进度 1 / 9。",
+      "区域截图中它带计时器图标并显示在礼包内容上方，结构角色是剩余时间状态字段。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "confirm",
+    "expected": "confirm"
+  },
+  {
+    "nodeId": "141:9624",
+    "characters": "1 / 9",
+    "section": "预览图/页签1 / 板块5（礼包）",
+    "reason": "当前 Figma 的 ancestor、组件、相邻文案、重复结构和区域截图仍不足以确认它是否需要独立文案 Key，保持待确认。",
+    "contextEvidence": [
+      "节点位于完整效果 Frame 内嵌的 切图/背景-1-5 Component 的 礼包 > 副标题 结构。",
+      "区域截图中它紧邻九份礼包奖励槽位，在该结构中承担“当前项 / 总项数”字段。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "confirm",
+    "expected": "confirm"
+  },
+  {
+    "nodeId": "141:10297",
+    "characters": "2",
+    "section": "预览图/页签1 / 板块4（会员与幸运箱）",
+    "reason": "该单字符 Text 只是完整倒计时字段因视觉样式拆出的一个数字碎片，不独立命名。",
+    "contextEvidence": [
+      "节点与 0、0、9、0、9 五个数字 Text 同级排列。",
+      "相邻组件 切图/倒计时 提供“剩余/结束”标签与两个冒号，区域截图显示完整倒计时结构。"
+    ],
+    "structuralAssessment": "visual-fragment",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "I141:6238;141:12066",
+    "characters": "700",
+    "section": "预览图/页签2 / 板块6（英雄决斗奖励）",
+    "reason": "700 是重复奖励路线中的固定解锁档位。",
+    "contextEvidence": [
+      "节点位于完整效果 Frame 内的 切图/s曲线 Frame > 第一行 > 气泡配置 Instance 的平行档位结构。",
+      "同一行的 3200、10000 分别配对不同奖励和有效期，区域截图显示它们共同构成固定刻度。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "skip",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "I141:6237;141:12052",
+    "characters": "3200",
+    "section": "预览图/页签2 / 板块6（英雄决斗奖励）",
+    "reason": "3200 是奖励路线中与相框奖励绑定的固定门槛。",
+    "contextEvidence": [
+      "节点位于完整效果 Frame 内的 切图/s曲线 Frame > 第一行 > 第二个 气泡配置 Instance，与相框和 5 天文案处于同一实例。",
+      "它和同一 S 曲线中的 700、10000 形成稳定且各不相同的平行档位。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "skip",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "I141:6236;141:12038",
+    "characters": "10000",
+    "section": "预览图/页签2 / 板块6（英雄决斗奖励）",
+    "reason": "10000 是奖励路线中与称号奖励绑定的固定门槛。",
+    "contextEvidence": [
+      "节点位于完整效果 Frame 内的 切图/s曲线 Frame > 第一行 > 第三个 气泡配置 Instance，与称号和 12 天文案处于同一实例。",
+      "第一行三个实例分别使用 700、3200、10000，结构表现为设计内固定配置。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "skip",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "I141:6206;141:12038",
+    "characters": "50000",
+    "section": "预览图/页签2 / 板块6（英雄决斗奖励）",
+    "reason": "50000 是第二行礼物卡奖励的固定解锁门槛。",
+    "contextEvidence": [
+      "节点位于完整效果 Frame 内的 切图/s曲线 Frame > 第二行 > 气泡配置 Instance，与礼物卡和 4x 文案绑定。",
+      "同一行还存在 100000 等后续档位，区域截图显示为连续固定刻度。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "skip",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "141:6234",
+    "characters": "100000",
+    "section": "预览图/页签2 / 板块6（英雄决斗奖励）",
+    "reason": "100000 是第二行房间背景奖励的固定解锁门槛。",
+    "contextEvidence": [
+      "节点位于完整效果 Frame 内的 切图/s曲线 Frame > 第二行 > 气泡配置 Frame，与房间背景和 20 天文案处于同一奖励档。",
+      "它和 50000 等数值沿同一 S 曲线排列，承担固定奖励配置而非当前进度。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "skip",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "141:11378",
+    "characters": "أثناء فترة النشاط، عندما يصل استهلاك الذهب إلى 550000",
+    "section": "预览图/页签1 / 板块2（充值优惠）",
+    "reason": "这里的 550000 是第二档优惠规则中的固定触发条件。",
+    "contextEvidence": [
+      "节点位于完整效果 Frame 内嵌的 切图/背景-1-2 Component 的独立优惠卡片 Frame 中。",
+      "同组件还有 850000、1500000 的平行优惠卡片，截图显示三者是固定规则而非当前值。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "skip",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "141:11334",
+    "characters": "عروض الشحن",
+    "section": "预览图/页签1 / 板块2（充值优惠）",
+    "reason": "该 Text 是充值优惠板块的固定标题。",
+    "contextEvidence": [
+      "节点位于完整效果 Frame 内嵌的 切图/背景-1-2 Component 的标题 Frame 中。",
+      "区域截图中它居中标识整个板块，下面的优惠卡片共享这一固定栏目标题。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "skip",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "141:10274",
+    "characters": "الفتح",
+    "section": "预览图/页签1 / 板块4（会员与幸运箱）",
+    "reason": "该 Text 是幸运箱开启按钮的固定命令标签。",
+    "contextEvidence": [
+      "节点位于完整效果 Frame 内嵌的 切图/按钮-开启 Component 内。",
+      "区域截图中它显示在宝箱按钮上，而当前开启次数由另一个 xx Text 承担。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "skip",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "141:10397",
+    "characters": "VIP لمدة 12 شهر",
+    "section": "预览图/页签1 / 板块4（会员与幸运箱）",
+    "reason": "该 Text 是三个并列会员套餐之一的固定时长配置。",
+    "contextEvidence": [
+      "节点位于完整效果 Frame 内嵌的 切图/图标-1年会员-选中 Component，与价格 $54.99 为兄弟 Text。",
+      "区域截图中还并列 3 个月和 1 个月套餐，各位置展示稳定且不同的字面配置。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "skip",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "141:10398",
+    "characters": "$54.99",
+    "section": "预览图/页签1 / 板块4（会员与幸运箱）",
+    "reason": "该 Text 是 12 个月会员套餐卡片中的固定价格配置。",
+    "contextEvidence": [
+      "节点与 VIP لمدة 12 شهر 同处一个套餐组件，组件内还有固定原价 89.99$。",
+      "同一区域的 3 个月和 1 个月卡片分别展示 $12.99、$4.99，形成固定选项集合。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "skip",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "141:9698",
+    "characters": "new",
+    "section": "预览图/页签1 / 板块5（礼包）",
+    "reason": "该 Text 在重复奖励格中承担固定的 new 角标内容，而非实体数据槽位。",
+    "contextEvidence": [
+      "节点位于完整效果 Frame 内嵌的 切图/背景-1-5 Component > 特殊玩法 Group，与固定数量 1x 同属一个奖励底板。",
+      "同一礼包网格多个奖励格重复使用完全相同的 new/New 字面值，没有不同实体内容填入该 Text 的结构证据。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "skip",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "141:9564",
+    "characters": "1x",
+    "section": "预览图/页签1 / 板块5（礼包）",
+    "reason": "1x 是礼包奖励格中的固定单份数量配置。",
+    "contextEvidence": [
+      "节点位于完整效果 Frame 内嵌的 切图/背景-1-5 Component > 礼包 > Frame 2085663264 > 底板，另外两个平行奖励格也显示 1x。",
+      "区域截图中各奖励槽位都以相同 1x 标注单份奖励，当前礼包进度由单独的 1 / 9 Text 承担。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "skip",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "141:9648",
+    "characters": "عند شراء حزمة الهدايا سوف تحصل على إحدى الكافآت، \nولن تحصل على نفس المكافأة بشكل متكرر",
+    "section": "预览图/页签1 / 板块5（礼包）",
+    "reason": "该 Text 是礼包购买规则的固定说明。",
+    "contextEvidence": [
+      "节点位于完整效果 Frame 内嵌的 切图/背景-1-5 Component 主内容 Group，而非奖励名称或状态槽位。",
+      "区域截图中它位于加号和奖励网格之间，完整描述固定玩法规则。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "skip",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "I141:10000;2076:102281",
+    "characters": "$ 0.99",
+    "section": "预览图/页签1 / 板块5（礼包）",
+    "reason": "当前 Figma 只能看出它是购买按钮价格，无法证明价格由产品数据填入还是写死的单一礼包配置。",
+    "contextEvidence": [
+      "节点位于完整效果 Frame 内嵌的 切图/按钮-0.99元 Instance 的 Mask group 中，当前区域没有第二个同构套餐用于比较。",
+      "区域截图只展示一个 $ 0.99 购买按钮，没有 placeholder、平行价格字段或状态标签提供进一步证据。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "confirm",
+    "expected": "confirm"
+  },
+  {
+    "nodeId": "141:5143",
+    "characters": "131420",
+    "section": "预览图/页签2 / 板块8（王者之舞）",
+    "reason": "该数值位于礼物主视觉下方，但当前结构不足以区分固定礼物价格与当前数据字段。",
+    "contextEvidence": [
+      "节点位于完整效果 Frame 内嵌的 切图/背景-2-8 Component 的 Frame 2085663803 中，旁边只有金币图标，没有语义标签。",
+      "区域截图未提供同构礼物卡片、placeholder 或当前/目标说明，单凭数值大小不能可靠二选一。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "confirm",
+    "expected": "confirm"
+  }
+]

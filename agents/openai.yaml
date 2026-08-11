@@ -1,4 +1,4 @@
 interface:
-  display_name: "Figma 动态文本命名"
-  short_description: "识别完整效果区域中的 Figma 动态文本并生成稳定业务名称"
-  default_prompt: "使用 $figma-text-naming 命名并去重这个 Figma Design 链接里的特效文本。"
+  display_name: "Figma UI 文案 Key 命名"
+  short_description: "识别完整效果稿中需要独立文案 Key 的 UI Text"
+  default_prompt: "使用 $figma-text-naming 识别这个 Figma Design 链接中需要独立文案 Key 的 UI Text 并按规范命名。"

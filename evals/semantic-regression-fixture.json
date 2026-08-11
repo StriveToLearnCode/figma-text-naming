@@ -1,0 +1,202 @@
+[
+  {
+    "nodeId": "progress-current-target",
+    "characters": "22500/550000",
+    "context": {
+      "ancestorPath": ["预览图/充值页", "金币消耗", "当前进度"],
+      "nearbyTexts": ["金币消耗", "优惠次数"],
+      "screenshotMeaning": "完整效果中独立展示当前值与目标值的进度文案槽位"
+    },
+    "structuralAssessment": "eligible",
+    "keyDecision": "name",
+    "expected": "name"
+  },
+  {
+    "nodeId": "current-round-template",
+    "characters": "当前轮次：xx",
+    "context": {
+      "ancestorPath": ["预览图/对决页", "奖励进度"],
+      "nearbyTexts": ["本轮积分"]
+    },
+    "structuralAssessment": "eligible",
+    "keySignals": [{ "type": "placeholder", "nodeId": "current-round-template" }],
+    "keyDecision": "name",
+    "expected": "name"
+  },
+  {
+    "nodeId": "current-wealth-placeholder",
+    "characters": "当前财富值：xxxx/100",
+    "context": {
+      "ancestorPath": ["预览图/财富页", "财富进度"],
+      "nearbyTexts": ["财富值玩法"]
+    },
+    "structuralAssessment": "eligible",
+    "keySignals": [{ "type": "placeholder", "nodeId": "current-wealth-placeholder" }],
+    "keyDecision": "name",
+    "expected": "name"
+  },
+  {
+    "nodeId": "arabic-name-placeholder",
+    "characters": "أزياء xxxxxx",
+    "context": {
+      "ancestorPath": ["预览图/宝箱页", "奖励详情"],
+      "nearbyTexts": ["奖励预览"]
+    },
+    "structuralAssessment": "eligible",
+    "keySignals": [{ "type": "placeholder", "nodeId": "arabic-name-placeholder" }],
+    "keyDecision": "name",
+    "expected": "name"
+  },
+  {
+    "nodeId": "tier-700",
+    "characters": "700",
+    "context": { "ancestorPath": ["预览图/奖励页", "固定奖励档位", "档位1"] },
+    "structuralAssessment": "eligible",
+    "keyDecision": "skip",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "tier-3200",
+    "characters": "3200",
+    "context": { "ancestorPath": ["预览图/奖励页", "固定奖励档位", "档位2"] },
+    "structuralAssessment": "eligible",
+    "keyDecision": "skip",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "tier-10000",
+    "characters": "10000",
+    "context": { "ancestorPath": ["预览图/奖励页", "固定奖励档位", "档位3"] },
+    "structuralAssessment": "eligible",
+    "keyDecision": "skip",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "ranking-nickname",
+    "characters": "用户昵称",
+    "context": { "ancestorPath": ["预览图/排行榜", "排名列表", "Item", "昵称"] },
+    "structuralAssessment": "repeated-entity-field",
+    "structuralGroupId": "ranking-items",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "ranking-score",
+    "characters": "9999999",
+    "context": { "ancestorPath": ["预览图/排行榜", "排名列表", "Item", "积分"] },
+    "structuralAssessment": "repeated-entity-field",
+    "structuralGroupId": "ranking-items",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "reward-item-name",
+    "characters": "道具名称",
+    "context": { "ancestorPath": ["预览图/奖励页", "奖励列表", "Item", "名称"] },
+    "structuralAssessment": "repeated-entity-field",
+    "structuralGroupId": "reward-items",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "reward-item-count",
+    "characters": "1x",
+    "context": { "ancestorPath": ["预览图/奖励页", "奖励列表", "Item", "数量"] },
+    "structuralAssessment": "repeated-entity-field",
+    "structuralGroupId": "reward-items",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "countdown-1",
+    "characters": "2",
+    "context": { "ancestorPath": ["预览图/宝箱页", "倒计时", "digit-1"] },
+    "structuralAssessment": "visual-fragment",
+    "structuralGroupId": "countdown-fragments",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "countdown-2",
+    "characters": "0",
+    "context": { "ancestorPath": ["预览图/宝箱页", "倒计时", "digit-2"] },
+    "structuralAssessment": "visual-fragment",
+    "structuralGroupId": "countdown-fragments",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "countdown-3",
+    "characters": ":",
+    "context": { "ancestorPath": ["预览图/宝箱页", "倒计时", "separator-1"] },
+    "structuralAssessment": "visual-fragment",
+    "structuralGroupId": "countdown-fragments",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "countdown-4",
+    "characters": "0",
+    "context": { "ancestorPath": ["预览图/宝箱页", "倒计时", "digit-3"] },
+    "structuralAssessment": "visual-fragment",
+    "structuralGroupId": "countdown-fragments",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "countdown-5",
+    "characters": "9",
+    "context": { "ancestorPath": ["预览图/宝箱页", "倒计时", "digit-4"] },
+    "structuralAssessment": "visual-fragment",
+    "structuralGroupId": "countdown-fragments",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "countdown-6",
+    "characters": ":",
+    "context": { "ancestorPath": ["预览图/宝箱页", "倒计时", "separator-2"] },
+    "structuralAssessment": "visual-fragment",
+    "structuralGroupId": "countdown-fragments",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "countdown-7",
+    "characters": "0",
+    "context": { "ancestorPath": ["预览图/宝箱页", "倒计时", "digit-5"] },
+    "structuralAssessment": "visual-fragment",
+    "structuralGroupId": "countdown-fragments",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "countdown-8",
+    "characters": "9",
+    "context": { "ancestorPath": ["预览图/宝箱页", "倒计时", "digit-6"] },
+    "structuralAssessment": "visual-fragment",
+    "structuralGroupId": "countdown-fragments",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "fixed-title",
+    "characters": "活动规则",
+    "context": { "ancestorPath": ["预览图/活动页", "规则区", "标题"] },
+    "structuralAssessment": "eligible",
+    "keyDecision": "skip",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "fixed-rule",
+    "characters": "完成任务可获得奖励",
+    "context": { "ancestorPath": ["预览图/活动页", "规则区", "说明"] },
+    "structuralAssessment": "eligible",
+    "keyDecision": "skip",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "isolated-price",
+    "characters": "$ 0.99",
+    "context": { "ancestorPath": ["预览图/礼包页", "单一购买按钮"] },
+    "structuralAssessment": "eligible",
+    "keyDecision": "confirm",
+    "expected": "confirm"
+  },
+  {
+    "nodeId": "isolated-number",
+    "characters": "131420",
+    "context": { "ancestorPath": ["预览图/礼物页", "主视觉下方"] },
+    "structuralAssessment": "eligible",
+    "keyDecision": "confirm",
+    "expected": "confirm"
+  }
+]

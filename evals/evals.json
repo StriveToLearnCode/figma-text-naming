@@ -3,165 +3,138 @@
   "evals": [
     {
       "id": 1,
-      "name": "effect-area-dynamic-text-names",
-      "prompt": "扫描这个 Figma 完整页面效果区域里的动态文本并给出命名建议：剩余抽奖次数 xx 次、奖励名称 XX、1x 倍、box。",
-      "expected_output": "先建立完整扫描账本，placeholder 命中项直接判为 dynamic，其余项按当前 Figma 结构批量判断，再对 dynamic 文本命名。",
+      "name": "scope-whole-page-to-preview-ledger",
+      "prompt": "给整页节点 0:1 中需要独立文案 Key 的 UI Text 命名。页面同时有预览页、预览图、切图、母组件、资产和标注区。",
+      "expected_output": "先浅层定位预览区域，再只为预览区域内部 Text 建 Scan Ledger。",
       "files": [],
       "expectations": [
-        "完整效果区域内四个可编辑 Text 全部进入扫描账本，不按 placeholder 提前过滤",
-        "含 xx 和 XX 的两个文本通过 placeholder scan 直接得到 dynamic，不再交给 AI 证明",
-        "1x 和 box 只根据当前 Figma 结构批量判断为 static 或 confirm，不通过字符业务白名单决定",
-        "剩余抽奖次数在抽奖板块中使用 文案/lottery/remaining-count",
-        "奖励名称在奖励板块中使用 文案/reward/name",
-        "名称必须通过 /^文案\\/[a-z]+(?:-[a-z]+)?\\/[a-z]+(?:-[a-z]+)?$/",
-        "动态文本列逐字保留 text node.characters，不翻译、概括或规范化",
-        "中文含义中的占位符统一表示为 {{}}",
-        "预览明细默认使用编号列表，不使用 Markdown 表格",
-        "不读取飞书或其他外部资料"
+        "第一阶段只读取 id/name/type，不枚举整页 Text",
+        "中文 selector 失败时在本地用 node.name.startsWith 定位预览页/和预览图/",
+        "切图、母组件、组件资产和标注区 Text 不进入账本、不计入扫描数或 skip",
+        "更具体的预览图范围避免与预览页祖先重复扫描"
       ]
     },
     {
       "id": 2,
-      "name": "migrate-review-and-reuse-layer-names",
-      "prompt": "给这个 Figma 链接里的动态文字命名。一个节点叫 lottery/remaining-count，另一个叫 文案/reward/name；原文完全相同的奖励名称在三个可写节点中重复出现，业务字段和生成 HTML 也相同。",
-      "expected_output": "迁移旧两段式名称，完整复核新三段式名称，并在命名阶段让重复文案复用同一最终名称。",
+      "name": "exclude-repeated-entity-fields-once",
+      "prompt": "排行榜有 10 个同构 Item，每行显示昵称、积分、排名；奖励列表的同构 Item 显示道具名称和 1x。另有完整模板 已获得 XX 个。",
+      "expected_output": "先按重复结构整组排除实体字段，完整模板继续进入文案 Key 判断。",
       "files": [],
       "expectations": [
-        "lottery/remaining-count 不能 keep，复核通过后迁移为 文案/lottery/remaining-count",
-        "文案/reward/name 只有在一级板块、业务域、字段语义和冲突检查全部正确时才能 keep",
-        "按逐字相同的 characters 找到三个重复奖励文案节点",
-        "核实业务字段和完整 HTML 相同后复用 文案/reward/name",
-        "预览可以合并重复字段，但写回覆盖三个可写文字图层",
-        "只修改 rename 项的文字图层名称并回读确认",
-        "写回后的最终回执只汇总扫描、已正确命名、跳过、待确认和失败数量，不输出全量结果表",
-        "只逐项列出待确认或失败的异常项，不逐项列出成功项和跳过项",
-        "不修改 characters、样式、位置、尺寸、可见性、板块结构或组件关系"
+        "昵称、积分、实体排名、道具名称和数量满足结构条件时结果为 skip",
+        "同构 Item 只分析一次并复用 groupId，不逐 Text 重复审计",
+        "已获得 XX 个包含固定文案结构，不属于整段实体字段",
+        "不使用排行榜、奖励、昵称或数量业务白名单"
       ]
     },
     {
       "id": 3,
-      "name": "confirm-uncertain-and-overlong-names",
-      "prompt": "这个 Figma 页面里有板块1和板块2。板块1只有一个显示 xxx 的文本，板块2有一个名为 文案/tab1/remaining-draw-count 的动态文本，请处理。",
-      "expected_output": "把板块名称只用于结构分界；证据不足或无法可靠缩短时输出 confirm，不用弱语义词猜测。",
+      "name": "exclude-countdown-visual-fragments",
+      "prompt": "倒计时由 2 0 : 0 9 : 0 9 八个 Text 拼成，请处理文案 Key。",
+      "expected_output": "八个单字符都是完整字段的视觉碎片，整组 skip。",
       "files": [],
       "expectations": [
-        "板块1和板块2只用于确定一级板块边界，不生成 block、section、panel 或 tab 业务域",
-        "纯 xxx 且没有业务语义证据时输出 confirm",
-        "tab1 是错误业务域，三词 semantic-key 也不合规",
-        "semantic-key 超过两个单词时不机械截断",
-        "无法可靠确定业务域或缩短方式时输出 confirm",
-        "不使用 txt、text、value、info、block、section 或 panel 猜测"
+        "在 AI 文案判断前完成 visual-fragment 结构排除",
+        "字符运行时可能变化也不能推出需要独立 Key",
+        "Coverage 只确认整组已有 skip，不重新逐节点分析"
       ]
     },
     {
       "id": 4,
-      "name": "preserve-original-script-punctuation-and-case",
-      "prompt": "扫描奖励板块中的动态文本并输出结果。两个 text node.characters 分别是：لقد أرسلت XX مرة، ولم يتم تفعيل مكافأة خمس نجوم. 和 xx时xx分！",
-      "expected_output": "动态文本列逐字保留每个 characters 原文；中文翻译只出现在完整中文含义列。",
+      "name": "decide-copy-key-semantics",
+      "prompt": "完整进度槽位显示 22500/550000；另有 当前轮次：xx、固定档位 700/3200/10000、活动规则、孤立价格 $0.99 和无语义数字 131420。",
+      "expected_output": "先用轻索引收敛强证据，只为仍未决的少量节点补充 Figma 上下文并判断 name、skip、confirm。",
       "files": [],
       "expectations": [
-        "动态文本列原样输出 لقد أرسلت XX مرة، ولم يتم تفعيل مكافأة خمس نجوم.，不替换为中文业务标签",
-        "保留阿拉伯语原文、阿拉伯逗号 ،、拉丁句点 . 和大写占位符 XX",
-        "动态文本列原样输出 xx时xx分！，保留小写 xx 和全角感叹号！",
-        "不把动态文本列中的 X、XX 或 xx 替换为 {{}}",
-        "只有完整中文含义列使用中文翻译并把占位符表示为 {{}}",
-        "原文不同的节点不作为同一重复文案合并，仍逐项列出各自的 characters"
+        "结构证据充分时 22500/550000 为 name，不要求证明 characters 会变化",
+        "当前轮次：xx 由 placeholder 强证据直接进入 name 候选，不送 AI",
+        "固定档位和活动规则为 skip",
+        "孤立价格和无语义数字证据不足时为 confirm",
+        "字段语义明确或运行时变化不能单独推出 name"
       ]
     },
     {
       "id": 5,
-      "name": "split-page-center-keys-for-presentation-conflicts",
-      "prompt": "给 Figma 动态文字命名并上传 PC。普通活动页和语音房画面都有 أفضل مستخدم: XXX جوهرة，业务含义相同，但生成 HTML 的字号分别是 0.22rem 和 0.20rem。",
-      "expected_output": "在文案命名阶段识别 HTML 差异，保留普通活动页名称，并使用稳定语音房场景限定拆分另一个名称和 key；上传阶段不再去重或改名。",
+      "name": "use-figma-signals-with-context",
+      "prompt": "一个 Text 绑定 Figma Variable，另一个同槽位在未领取和已领取 Variant 中显示不同文案。",
+      "expected_output": "把绑定和跨状态文案差异作为强 keySignals，结构排除后直接进入 name 候选。",
       "files": [],
       "expectations": [
-        "在生成最终名称前比较两个重复文案节点的完整 HTML",
-        "普通活动页保留 文案/ranking/jewel-count",
-        "语音房版本使用 文案/voice-ranking/jewel-count",
-        "PC key 分别为 ranking/jewel-count 和 voice-ranking/jewel-count",
-        "不使用 small、0.20rem、节点 ID、Frame 编号或无语义数字拆分名称",
-        "不得选择其中一个字号覆盖同一个 PC key",
-        "上传前只校验命名阶段产出的完整 key 到 HTML 映射，不重新分组或改名，确认无冲突后执行上传并回读"
+        "记录实际 bindingPath/bindingValue 或同槽位 occurrences",
+        "有效强信号直接写入 keyDecision name，不再补截图或交给 AI",
+        "不把图层名或父级名伪装成 Figma 绑定",
+        "一批处理共享 Component/Variant 上下文"
       ]
     },
     {
       "id": 6,
-      "name": "use-semantic-batches-with-optional-slice-counterevidence",
-      "prompt": "给这个 Figma 链接里的动态文字命名。链接范围内有一个完整阿拉伯语页面效果和它对应的无文字切图；两者属于同一版本和界面状态。在共同覆盖区域里，奖励标题和倒计时只出现在完整页面效果中，且各自能唯一对应到效果区域内的一个可编辑 Text 节点。另一个玩法标题在两边都有。",
-      "expected_output": "基于完整效果的结构职责批量判断无 placeholder Text；已有且明确的切图只作为固定烘焙文字的可选反证。",
+      "name": "preserve-naming-and-html-contract",
+      "prompt": "两个 name 节点原文相同、业务字段相同，但完整 HTML 不同；本次不上传 Page Center。",
+      "expected_output": "继续应用现有命名规范，在命名阶段完成重复原文和完整 HTML 分组。",
       "files": [],
       "expectations": [
-        "三个效果区域 Text 全部进入扫描账本，不要求每项存在 sliceStatus",
-        "按一级板块和共享祖先把无 placeholder Text 组成一个或少量批次进行 AI Semantic Assessment",
-        "奖励标题和倒计时只有在当前 UI 结构足以证明由内容或状态填入时才判为 dynamic",
-        "最终动态文本原文逐字取自唯一匹配的 Text 节点 characters，不用图片 OCR 结果代替",
-        "切图已经容易取得且关系明确时，可把玩法标题已烘焙作为 static 的反证",
-        "找不到切图或配对复杂不阻断 AI 判断，也不自动输出 confirm",
-        "AI 信息不足时保持 confirm，不用置信度自动归为 dynamic 或 static"
+        "名称格式仍为 文案/${business-domain}/${semantic-key}",
+        "原文和 HTML 相同的同字段节点复用名称",
+        "HTML 不同时使用现有稳定场景复合业务域规则拆名",
+        "不追加节点 ID、Frame 编号或无语义数字"
       ]
     },
     {
       "id": 7,
-      "name": "adapt-candidate-funnel-to-large-page-structure",
-      "prompt": "给这个大型 Figma 页面里的动态文字命名。目标节点有 12 个一级板块和 400 个 Text 节点，其中混合了完整页面效果、弹窗效果、切图、素材陈列和标注；目标效果区域里只有 3 个文本含 XX。一组完整效果和切图已明确配对，另一组没有配对标签但在同一素材区中具有对应结构、位置和视觉地标。一个候选的局部文案不足以确定语义，需要查看更高层组件。不要上传 PC。",
-      "expected_output": "先定位完整效果区域并建立全量 Text 账本，再按一级板块、共享祖先、组件和空间区域复用上下文，分组完成 AI 三态判断。",
+      "name": "freeze-before-first-write",
+      "prompt": "识别并写回完整预览区的文案 Key。",
+      "expected_output": "Coverage、命名、Preflight 和 Naming Plan Freeze 全部完成后才首次写 node.name。",
       "files": [],
       "expectations": [
-        "优先读取页面结构和边界，先定位完整页面与弹窗效果区域，再批量读取其中所有可编辑 Text 的 characters",
-        "切图、素材陈列和标注区域中的 Text 不进入命名账本，即使含 XX 也不命名或计入扫描总数",
-        "不先把账本过滤成只有 3 个 placeholder Text；placeholder 命中后直接 dynamic",
-        "非 placeholder Text 按一级板块、共享祖先、Component 或 Instance、空间区域成组，一组只分析一次",
-        "同板块和共享祖先上下文只读取一次，不逐 Text 探索祖先或寻找切图",
-        "没有切图或素材配对复杂时继续 AI Semantic Assessment，不阻断流程",
-        "范围内 Figma 信息仍不足时输出 confirm，不通过置信度猜测",
-        "读写优先批量处理，但工具不适合批量时允许采用其他可靠方式",
-        "无论采用何种搜索方式，都不越出用户范围，并完成名称校验、冲突检查和写后回读"
+        "账本每项最终为 rename、keep、skip 或 confirm",
+        "任何 name 节点缺少合规 finalName 时无法冻结计划",
+        "只批量写 rename 对应的 TEXT.node.name",
+        "不修改 characters、样式、布局、层级或组件关系",
+        "写后批量回读并与冻结 finalName 对比"
       ]
     },
     {
       "id": 8,
-      "name": "deduplicate-copy-during-naming-without-page-center",
-      "prompt": "只给这个 Figma 链接里的动态文字命名，不上传 Page Center。两个节点的 characters 都是 أفضل مستخدم: XXX جوهرة，业务字段相同，但生成 HTML 的字号分别是 0.22rem 和 0.20rem。",
-      "expected_output": "即使本次不上传 Page Center，也在命名阶段完成重复文案和 HTML 去重，直接生成以后可上传的最终名称。",
+      "name": "page-center-after-figma-readback",
+      "prompt": "给预览区需要文案 Key 的 Text 命名并上传 Page Center。",
+      "expected_output": "写入前校验完整 key 到 HTML 映射，Figma 回读成功后消费同一冻结计划上传。",
       "files": [],
       "expectations": [
-        "按逐字相同的 characters 将两个节点识别为重复文案",
-        "核实两个节点表示同一业务字段，不能只凭原文相同直接合并",
-        "在命名阶段读取 styled text segments 并比较完整 HTML",
-        "普通活动页使用 文案/ranking/jewel-count，语音房版本使用 文案/voice-ranking/jewel-count",
-        "HTML 不同的稳定场景拆名不依赖本次是否上传 Page Center",
-        "后续上传 Page Center 时复用现有名称，不再执行第二轮去重或改名"
+        "Page Center Key 规则保持不变",
+        "同一 key 对应不同 HTML 时在任何写入前停止",
+        "上传阶段不重新分组、改名或覆盖冲突",
+        "上传后回读并单独汇报成功和失败数量"
       ]
     },
     {
       "id": 9,
-      "name": "include-popup-effects-and-exclude-delivery-text",
-      "prompt": "给这个 Figma 链接里的动态文字命名。范围内有一个未命名的完整活动页 Frame、一个名为 Frame 302 的独立奖励弹窗效果，以及切图和标注陈列区。活动页效果中有固定标题“活动规则”；弹窗效果中的“获得奖励 XX”由状态内容填入。切图区另有“导出尺寸 XX”，标注区还有一个“XX”。",
-      "expected_output": "不依赖节点是否叫预览图，识别完整页面和独立弹窗效果；完整账本中 placeholder 直接 dynamic，其余 Text 按结构职责批量判断。",
+      "name": "large-page-light-index-performance",
+      "prompt": "完整预览区有 515 个 Text，其中大部分属于同构排行榜、奖励 Item 和视觉碎片，少量有 placeholder/binding，只有极少数无法由轻索引判断。",
+      "expected_output": "一次批量轻索引后在本地分组收敛，只为未决结构代表节点补读并调用 AI。",
       "files": [],
       "expectations": [
-        "通过结构、视觉完整性和素材关系识别完整活动页与独立弹窗效果，不要求容器名含预览图",
-        "独立弹窗、浮层和页面状态都可以成为完整效果展示区域",
-        "活动页中的活动规则由当前结构判断为设计固定展示内容，semanticAssessment 为 static",
-        "弹窗效果中的获得奖励 XX 通过 placeholder scan 直接得到 dynamic 并进入命名",
-        "切图区的导出尺寸 XX 和标注区的 XX 属于命名范围外，不因占位符进入候选",
-        "命名范围外的 Text 不输出 skip，也不计入共扫描 N 个文本",
-        "不要求为账本 Text 逐项寻找切图或记录 sliceStatus"
+        "不得每 25 个 Text 分片调用 Figma，也不得把全部 515 个 Text 交给 AI",
+        "轻索引只包含 id、characters、name、ancestor/component path 和 variable binding 等结构字段",
+        "重复实体字段和视觉碎片整组 skip，相同 Component 槽位只分析一次并复用",
+        "Coverage 只检查每个 Ledger 节点最终可归约为 name、skip 或 confirm，不要求完整上下文",
+        "styled segments 和 HTML 只在最终重复候选比对或 Page Center 输出时读取",
+        "大批量审计数据使用临时 JSON 或 stdin，不使用 shell 参数或 Base64"
       ]
     },
     {
       "id": 10,
-      "name": "include-fixed-number-from-ai-semantic-assessment",
-      "prompt": "给这个 Figma 页面里的动态文字命名。当前进度组件中的 Text 原文是 22500/550000；同板块重复档位结构中的数值是 700、3200、10000、50000、100000。另有 26 个含 XX 的 Text 已成功写回并回读一致。",
-      "expected_output": "不能只用 placeholder 过滤候选；基于当前 Figma 结构批量区分数据填充进度与设计固定档位，并在写入前完成全量语义覆盖审计。",
+      "name": "group-confirm-output-by-exact-copy",
+      "prompt": "命名完成后有 3 个待确认节点：板块5和板块4各有一个逐字相同的 已累计：xxL/100L，两处完整 HTML 不同且缺少稳定场景限定名；板块2另有一个孤立价格 $0.99。请输出最终结果。",
+      "expected_output": "待确认保留 3 个节点、展示为 2 组；重复原文只展示一次，并给出涉及位置、具体原因、当前冲突和用户真正需要确认的问题。",
       "files": [],
       "expectations": [
-        "22500/550000 与五个固定档位数值全部进入扫描账本，不按 placeholder 提前过滤",
-        "同组 AI Semantic Assessment 根据进度组件职责把 22500/550000 判断为 dynamic",
-        "同组或复用上下文的批量判断把 700、3200、10000、50000、100000 判断为 static",
-        "没有业务类型或字符 includes 白名单，也不要求切图或 sliceStatus",
-        "冻结候选和 naming plan 前先审计账本中的每个 Text 是否已有 dynamic、static 或 confirm",
-        "26 个名称回读一致只证明写入正确，不能证明动态文本候选覆盖完整"
+        "汇总同时包含待确认节点数 3 和待确认组数 2",
+        "严格按逐字 characters 分组，已累计：xxL/100L 只展示一个待确认组",
+        "重复原文组的位置合并展示板块5和板块4，不按节点分别输出",
+        "每组依次包含文本、位置、为什么待确认、当前冲突、需要确认",
+        "重复原文组说明原文相同但完整 HTML 不同，不能直接共用 Page Center Key，且缺少稳定场景限定名",
+        "需要确认的问题询问两处是否属于不同业务场景，不能只写请确认如何处理",
+        "孤立价格作为另一个 characters 组单独展示"
       ]
     }
   ]

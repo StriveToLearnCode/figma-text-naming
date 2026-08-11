@@ -1,0 +1,353 @@
+[
+  {
+    "nodeId": "306:23922",
+    "characters": "優惠次數：0/20次",
+    "section": "预览图/tab1 / 板块2（储值优惠）",
+    "reason": "当前 Figma 的 ancestor、组件、相邻文案、重复结构和区域截图仍不足以确认它是否需要独立文案 Key，保持待确认。",
+    "contextEvidence": [
+      "节点是板块2的直接子 Text，并与金币消耗进度并列显示在福利卡片下方。",
+      "区域截图中该 Text 承担当前优惠状态，下方固定规则文案另行说明每个账号共有20次机会。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "confirm",
+    "expected": "confirm"
+  },
+  {
+    "nodeId": "306:23923",
+    "characters": "金幣消耗：22500/550000",
+    "section": "预览图/tab1 / 板块2（储值优惠）",
+    "reason": "当前 Figma 的 ancestor、组件、相邻文案、重复结构和区域截图仍不足以确认它是否需要独立文案 Key，保持待确认。",
+    "contextEvidence": [
+      "节点是板块2的直接子 Text，与优惠次数状态处于同一进度栏。",
+      "区域截图中当前值 22500 与固定福利二条件 550000 分属状态展示和规则说明。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "confirm",
+    "expected": "confirm"
+  },
+  {
+    "nodeId": "306:23824",
+    "characters": "累計消費：12345678金幣",
+    "section": "预览图/tab1 / 板块3（惊喜累消）",
+    "reason": "当前 Figma 的 ancestor、组件、相邻文案、重复结构和区域截图仍不足以确认它是否需要独立文案 Key，保持待确认。",
+    "contextEvidence": [
+      "节点位于 累充S曲线 组件，与固定奖励档位数值共享同一模块但不在档位 Frame 内。",
+      "区域截图中它位于领取按钮上方，明确标注当前累计消费。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "confirm",
+    "expected": "confirm"
+  },
+  {
+    "nodeId": "306:24211",
+    "characters": "昵称昵称昵称昵称",
+    "section": "预览图/榜单 / 榜单模块（前三名）",
+    "reason": "该 Text 是重复榜单席位中由对应用户实体直接填入的昵称字段。",
+    "contextEvidence": [
+      "节点位于完整效果 Frame 内嵌的 切图/榜单前三名-尺寸不限 Component 的开发命名 Frame。",
+      "区域截图中 NO.1、NO.2、NO.3 席位均包含头像、昵称和积分，昵称 Text 在重复席位中承担同一实体字段职责。"
+    ],
+    "structuralAssessment": "repeated-entity-field",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "306:24214",
+    "characters": "9999999",
+    "section": "预览图/榜单 / 榜单模块（前三名）",
+    "reason": "该 Text 是重复榜单席位中由对应用户实体直接填入的积分字段。",
+    "contextEvidence": [
+      "节点位于完整效果 Frame 内嵌的 切图/榜单前三名-尺寸不限 Component > Frame 8214412，与昵称 Text 处于同一选手卡位结构。",
+      "区域截图中每个榜位都显示独立积分，固定 NO.1/NO.2/NO.3 标签由其他 Text 承担。"
+    ],
+    "structuralAssessment": "repeated-entity-field",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "306:24251",
+    "characters": "用户昵称",
+    "section": "预览图/榜单 / 榜单模块（第4-10名）",
+    "reason": "该 Text 是重复排行榜行中由对应用户实体直接填入的昵称字段。",
+    "contextEvidence": [
+      "节点位于 单人-排行榜 组件，并被 4-10自动布局 用作列表行。",
+      "区域截图中多行以相同结构重复展示头像、昵称和积分，相同位置对应不同用户实体。"
+    ],
+    "structuralAssessment": "repeated-entity-field",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "306:24254",
+    "characters": "99.9W",
+    "section": "预览图/榜单 / 榜单模块（第4-10名）",
+    "reason": "该 Text 是重复排行榜行中由对应用户实体直接填入的积分字段。",
+    "contextEvidence": [
+      "节点位于 单人-排行榜 组件的 xx值 Frame，与用户昵称处于同一列表行。",
+      "区域截图中每一行右侧都有同职责积分位置，与同一行昵称共同构成实体数据字段。"
+    ],
+    "structuralAssessment": "repeated-entity-field",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "306:26566",
+    "characters": "距離保底：xxx個",
+    "section": "预览图/tab2 / 板块2（粽情于你）",
+    "reason": "xxx 表示当前距离触发保底还差的礼物数量。",
+    "contextEvidence": [
+      "节点是板块2的直接子 Text，不属于切图或素材陈列。",
+      "区域截图中它位于返金礼物卡右上方，承担当前保底距离的状态字段。"
+    ],
+    "structuralAssessment": "eligible",
+    "keySignals": [
+      {
+        "type": "placeholder",
+        "nodeId": "306:26566"
+      }
+    ],
+    "keyDecision": "name",
+    "expected": "name"
+  },
+  {
+    "nodeId": "306:25407",
+    "characters": "已累計   :xxl/100l",
+    "section": "预览图/tab2 / 板块5（岁岁粽相见）",
+    "reason": "当前 Figma 的 ancestor、组件、相邻文案、重复结构和区域截图仍不足以确认它是否需要独立文案 Key，保持待确认。",
+    "contextEvidence": [
+      "节点是板块5的直接子 Text，紧邻水滴图标与水池奖励区域。",
+      "区域截图中它显示在玩法三水池底部，结构角色是当前进度而非固定规则。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "confirm",
+    "expected": "confirm"
+  },
+  {
+    "nodeId": "306:25440",
+    "characters": "已xx次未抽到5星獎勵",
+    "section": "预览图/tab2 / 板块5（岁岁粽相见）",
+    "reason": "xx 是连续未获得5星奖励的当前次数。",
+    "contextEvidence": [
+      "节点是板块5的直接子 Text，位于三个5星奖励图标下方的状态面板。",
+      "区域截图中该次数与下一次5星概率并列位于同一状态面板，承担连续未中奖次数字段。"
+    ],
+    "structuralAssessment": "eligible",
+    "keySignals": [
+      {
+        "type": "placeholder",
+        "nodeId": "306:25440"
+      }
+    ],
+    "keyDecision": "name",
+    "expected": "name"
+  },
+  {
+    "nodeId": "306:25441",
+    "characters": "下次爆出5星獎勵機率xXX",
+    "section": "预览图/tab2 / 板块5（岁岁粽相见）",
+    "reason": "当前 Figma 的 ancestor、组件、相邻文案、重复结构和区域截图仍不足以确认它是否需要独立文案 Key，保持待确认。",
+    "contextEvidence": [
+      "节点是板块5的直接子 Text，与“已xx次未抽到5星奖励”并列位于同一状态面板。",
+      "同板块固定规则说明倍率最高为 x10倍，而此处 xXX 位于当前状态面板并承担倍率字段。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "confirm",
+    "expected": "confirm"
+  },
+  {
+    "nodeId": "306:25471",
+    "characters": "可開啟次數：X次",
+    "section": "预览图/tab2 / 板块5（岁岁粽相见）",
+    "reason": "X 是当前用户可一键开启的次数。",
+    "contextEvidence": [
+      "节点是板块5的直接子 Text，位于一键开启按钮内部状态区域附近。",
+      "区域截图中该 Text 承担可开启次数字段，按钮标签本身由另一个固定 Text 承担。"
+    ],
+    "structuralAssessment": "eligible",
+    "keySignals": [
+      {
+        "type": "placeholder",
+        "nodeId": "306:25471"
+      }
+    ],
+    "keyDecision": "name",
+    "expected": "name"
+  },
+  {
+    "nodeId": "306:23800",
+    "characters": "3,000金币",
+    "section": "预览图/tab1 / 板块3（惊喜累消）",
+    "reason": "3,000金币 是累计消费奖励路线中的固定档位门槛。",
+    "contextEvidence": [
+      "节点位于 累充S曲线 > 累充-布局-道具1，与多个不同金额 Text 处于同一配置结构。",
+      "区域截图中 3,000、10,000、50,000 等金额沿固定奖励路线排列。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "skip",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "306:23805",
+    "characters": "10,000金币",
+    "section": "预览图/tab1 / 板块3（惊喜累消）",
+    "reason": "10,000金币 是奖励路线中与特定奖励绑定的固定门槛。",
+    "contextEvidence": [
+      "节点与 3,000金币、50,000金币 等 Text 同属 累充-布局-道具1 Frame。",
+      "这些平行数值各自对应稳定且不同的奖励卡位，不承担当前累计值职责。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "skip",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "306:23806",
+    "characters": "50,000金币",
+    "section": "预览图/tab1 / 板块3（惊喜累消）",
+    "reason": "50,000金币 是累计奖励 S 曲线中的固定配置档位。",
+    "contextEvidence": [
+      "节点位于 累充S曲线 组件的统一档位布局内。",
+      "当前累计消费由独立 Text 306:23824 展示，结构上与固定档位清晰分离。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "skip",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "306:23804",
+    "characters": "150,000金币",
+    "section": "预览图/tab1 / 板块3（惊喜累消）",
+    "reason": "150,000金币 是奖励路线中的固定阶段目标。",
+    "contextEvidence": [
+      "节点与 3,000、10,000、50,000、450,000 等数值共用同一奖励档位 Frame。",
+      "区域截图将这些数值呈现为稳定刻度，而非当前用户状态。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "skip",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "340:34733",
+    "characters": "儲值優惠",
+    "section": "预览图/tab1 / 板块2（储值优惠）",
+    "reason": "该 Text 是储值优惠模块的固定标题。",
+    "contextEvidence": [
+      "节点位于完整效果 Frame 内嵌的 切图/bg/1-2 Component 的 标题 > 底框 结构。",
+      "区域截图中它居中标识整个板块，动态优惠次数和进度由其他 Text 展示。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "skip",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "340:40075",
+    "characters": "去儲值",
+    "section": "预览图/tab1 / 板块2（储值优惠）",
+    "reason": "该 Text 是跳转储值按钮的固定命令标签。",
+    "contextEvidence": [
+      "节点位于完整效果 Frame 内嵌的 切图/按钮-去充值 Component 内。",
+      "区域截图中该 Text 承担固定操作标签，上方两个 Text 分别承担优惠次数和进度字段。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "skip",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "306:24195",
+    "characters": "NO.1",
+    "section": "预览图/榜单 / 榜单模块（前三名）",
+    "reason": "NO.1 是领奖台第一名固定席位标签，不是当前实体的排名数据槽。",
+    "contextEvidence": [
+      "节点位于完整效果 Frame 内嵌的 切图/榜单前三名-尺寸不限 Component > 讲台 > 编组25，和 NO.2、NO.3 分别固定在三个领奖台位置。",
+      "昵称与积分由同一前三名组件中的其他 Text 节点承担动态内容。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "skip",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "306:24187",
+    "characters": "NO.2",
+    "section": "预览图/榜单 / 榜单模块（前三名）",
+    "reason": "NO.2 是领奖台第二名固定席位标签。",
+    "contextEvidence": [
+      "节点位于完整效果 Frame 内嵌的 切图/榜单前三名-尺寸不限 Component > 讲台 > 编组24，与 NO.1、NO.3 构成稳定的三个席位标识。",
+      "区域截图中 NO.1、NO.2、NO.3 分别固定在三个席位，头像、昵称和积分由其他 Text 与图像槽位承担。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "skip",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "306:24321",
+    "characters": "第1名獎勵",
+    "section": "预览图/榜单 / 板块2（排行奖励）",
+    "reason": "该 Text 是第一名固定奖励档位的标题。",
+    "contextEvidence": [
+      "节点位于完整效果 Frame 内嵌的 切图/榜单/bg/2 Component > top1 Frame 的标题结构，与具体定制称号和头像框奖励同组。",
+      "同板块还有第2-3名、第4-10名、第11-20名等平行固定奖励档。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "skip",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "306:24377",
+    "characters": "第2-3名獎勵",
+    "section": "预览图/榜单 / 板块2（排行奖励）",
+    "reason": "该 Text 是第2-3名固定奖励档位的标题。",
+    "contextEvidence": [
+      "节点位于完整效果 Frame 内嵌的 切图/榜单/bg/2 Component > top2 Frame 的标题结构。",
+      "它与第1名、第4-10名等标题构成稳定且各不相同的固定配置分段。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "skip",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "306:25337",
+    "characters": "x10倍",
+    "section": "预览图/tab2 / 板块5（岁岁粽相见）",
+    "reason": "这里的 x 是乘号语义，x10倍 是玩法规则中的固定最高倍率。",
+    "contextEvidence": [
+      "节点位于完整效果 Frame 内嵌的 切图/bg/2-5 Component > 玩法二说明 Group，与“5星奖励概率不断翻倍，最高”组成完整固定句子。",
+      "当前下一次奖励倍率由独立 Text“下次爆出5星奖励机率xXX”承担。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "skip",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "1386:13961",
+    "characters": "New",
+    "section": "预览图/tab2 / 板块5（岁岁粽相见）",
+    "reason": "该 Text 在奖励卡片中承担固定的 New 角标内容，而非实体数据槽位。",
+    "contextEvidence": [
+      "节点位于完整效果 Frame 内嵌的 切图/蛛光凝夢 Component 中，同一奖励池还有其他 New 徽标。",
+      "区域截图中 New 作为固定角标覆盖奖励图片，没有不同实体内容填入该 Text 的结构证据。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "skip",
+    "expected": "skip"
+  },
+  {
+    "nodeId": "457:36328",
+    "characters": "1314520",
+    "section": "预览图/tab2 / 板块5（岁岁粽相见）",
+    "reason": "该数值位于5星奖励卡片内，但当前 Figma 无法证明它是固定奖励参数、占位示例还是数据字段。",
+    "contextEvidence": [
+      "节点位于完整效果 Frame 内嵌的 切图/道具底板-大 Component > 道具底板，与固定标签 5星 同组。",
+      "多个奖励卡片重复出现 1314520，但没有字段标签、placeholder 或不同实体值说明其槽位职责。"
+    ],
+    "structuralAssessment": "confirm",
+    "expected": "confirm"
+  },
+  {
+    "nodeId": "457:37630",
+    "characters": "59,999",
+    "section": "预览图/tab2 / 板块8（那年夏天）",
+    "reason": "当前结构只能确认它显示在礼物卡片的金币位置，无法证明价格是固定设计配置还是产品数据字段。",
+    "contextEvidence": [
+      "节点位于完整效果 Frame 内嵌的 切图/bg/2-8 Component > 道具底框 的价格 Frame，并与那年夏天礼物名称同组。",
+      "区域截图只有一个同类购买卡片，没有平行价格、placeholder 或配置刻度提供进一步证据。"
+    ],
+    "structuralAssessment": "eligible",
+    "keyDecision": "confirm",
+    "expected": "confirm"
+  }
+]
