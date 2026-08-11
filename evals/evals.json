@@ -5,13 +5,13 @@
       "id": 1,
       "name": "scope-whole-page-to-preview-ledger",
       "prompt": "给整页节点 0:1 中需要独立文案 Key 的 UI Text 命名。页面同时有预览页、预览图、切图、母组件、资产和标注区。",
-      "expected_output": "先浅层定位预览区域，再只为预览区域内部 Text 建 Scan Ledger。",
+      "expected_output": "先浅层定位预览图区域，再只为预览图内部 Text 建 Scan Ledger。",
       "files": [],
       "expectations": [
         "第一阶段只读取 id/name/type，不枚举整页 Text",
-        "中文 selector 失败时在本地用 node.name.startsWith 定位预览页/和预览图/",
+        "中文 selector 失败时在本地用 node.name.startsWith 定位预览图/",
         "切图、母组件、组件资产和标注区 Text 不进入账本、不计入扫描数或 skip",
-        "更具体的预览图范围避免与预览页祖先重复扫描"
+        "多个预览图范围优先冻结互不包含的最具体区域"
       ]
     },
     {
@@ -70,13 +70,17 @@
       "id": 6,
       "name": "preserve-naming-and-html-contract",
       "prompt": "两个 name 节点原文相同、业务字段相同，但完整 HTML 不同；本次不上传 Page Center。",
-      "expected_output": "继续应用现有命名规范，在命名阶段完成重复原文和完整 HTML 分组。",
+      "expected_output": "在命名阶段按完整 canonical HTML 分组并自动生成稳定数字后缀，不进入 confirm。",
       "files": [],
       "expectations": [
         "名称格式仍为 文案/${business-domain}/${semantic-key}",
         "原文和 HTML 相同的同字段节点复用名称",
-        "HTML 不同时使用现有稳定场景复合业务域规则拆名",
-        "不追加节点 ID、Frame 编号或无语义数字"
+        "HTML 不同时在 semantic-key 末尾自动分配 -1、-2，后续依次递增",
+        "合法现有 -N 名称优先保留，首次生成按冻结后的稳定文档顺序分配",
+        "后续扫描即使节点顺序变化，同一 canonical HTML 仍保留原后缀，不允许 -1/-2 反转",
+        "不使用节点 ID、Frame 编号或随机数生成后缀",
+        "单纯 HTML 不同不得进入 confirm",
+        "characters 不同的繁简或翻译文案不进入同一个 HTML 后缀组，仍分别判断"
       ]
     },
     {
@@ -101,7 +105,7 @@
       "files": [],
       "expectations": [
         "Page Center Key 规则保持不变",
-        "同一 key 对应不同 HTML 时在任何写入前停止",
+        "同一 key 对应不同 HTML 时在任何写入前停止并报告后缀分配失败，不转 confirm",
         "上传阶段不重新分组、改名或覆盖冲突",
         "上传后回读并单独汇报成功和失败数量"
       ]
@@ -110,31 +114,75 @@
       "id": 9,
       "name": "large-page-light-index-performance",
       "prompt": "完整预览区有 515 个 Text，其中大部分属于同构排行榜、奖励 Item 和视觉碎片，少量有 placeholder/binding，只有极少数无法由轻索引判断。",
-      "expected_output": "一次批量轻索引后在本地分组收敛，只为未决结构代表节点补读并调用 AI。",
+      "expected_output": "从第一次轻索引起按一级稳定块读取并即时归档，在本地合并后分组收敛，只为未决结构代表节点补读并调用 AI。",
       "files": [],
       "expectations": [
         "不得每 25 个 Text 分片调用 Figma，也不得把全部 515 个 Text 交给 AI",
-        "轻索引只包含 id、characters、name、ancestor/component path 和 variable binding 等结构字段",
+        "禁止先递归读取整个预览区域；从第一次读取起按一级板块或最近稳定子 Frame 分块",
+        "Coverage 的 Text 投影严格只包含 id、characters、name、ancestorPathRef、componentRef，重复 ancestorPath/component 由字典承载",
+        "每块读取后立即归档，同一 blockNodeId 最多读取一次；单块超限由 Runner 递归适配结构，不重读父块",
         "重复实体字段和视觉碎片整组 skip，相同 Component 槽位只分析一次并复用",
         "Coverage 只检查每个 Ledger 节点最终可归约为 name、skip 或 confirm，不要求完整上下文",
-        "styled segments 和 HTML 只在最终重复候选比对或 Page Center 输出时读取",
+        "styled segments 和 HTML 只允许读取 name 候选，截图只允许读取缓存无法回答的 confirm 组",
+        "Coverage 从缓存中的完整叶子块本地合并，不要求把全部 Text JSON 再传回模型",
         "大批量审计数据使用临时 JSON 或 stdin，不使用 shell 参数或 Base64"
       ]
     },
     {
       "id": 10,
-      "name": "group-confirm-output-by-exact-copy",
-      "prompt": "命名完成后有 3 个待确认节点：板块5和板块4各有一个逐字相同的 已累计：xxL/100L，两处完整 HTML 不同且缺少稳定场景限定名；板块2另有一个孤立价格 $0.99。请输出最终结果。",
-      "expected_output": "待确认保留 3 个节点、展示为 2 组；重复原文只展示一次，并给出涉及位置、具体原因、当前冲突和用户真正需要确认的问题。",
+      "name": "html-variants-do-not-enter-confirm",
+      "prompt": "命名候选中，板块5和板块4各有一个逐字相同的 已累计：xxL/100L，两处完整 HTML 不同且缺少稳定场景限定名；板块2另有一个业务语义不明的孤立价格 $0.99。请输出最终结果。",
+      "expected_output": "两处重复原文按 canonical HTML 自动生成两个稳定后缀名称；只有孤立价格保留为 1 个待确认节点（1 组）。",
       "files": [],
       "expectations": [
-        "汇总同时包含待确认节点数 3 和待确认组数 2",
-        "严格按逐字 characters 分组，已累计：xxL/100L 只展示一个待确认组",
-        "重复原文组的位置合并展示板块5和板块4，不按节点分别输出",
-        "每组依次包含文本、位置、为什么待确认、当前冲突、需要确认",
-        "重复原文组说明原文相同但完整 HTML 不同，不能直接共用 Page Center Key，且缺少稳定场景限定名",
-        "需要确认的问题询问两处是否属于不同业务场景，不能只写请确认如何处理",
-        "孤立价格作为另一个 characters 组单独展示"
+        "汇总包含待确认节点数 1 和待确认组数 1",
+        "已累计：xxL/100L 的两个 HTML 分组分别使用同一 baseName 的 -1、-2 名称",
+        "后缀按冻结后的稳定文档顺序生成，不读取 nodeId 或使用随机数",
+        "HTML 不同不作为待确认原因",
+        "孤立价格组依次包含文本、位置、为什么待确认、当前冲突、需要确认",
+        "孤立价格作为唯一的 confirm characters 组展示"
+      ]
+    },
+    {
+      "id": 11,
+      "name": "reuse-task-cache-across-deep-reads",
+      "prompt": "三个未决组共享同一祖先和 Component，其中两个 confirm 位于同一区域；随后又追问其中一个节点。",
+      "expected_output": "祖先、Component、节点富文本和区域截图在任务内各读一次，后续判断与追问复用缓存。",
+      "files": [],
+      "expectations": [
+        "每次定向 Figma 读取前先检查任务缓存",
+        "同一祖先和 Component 不因多个组重复读取",
+        "同一区域的 confirm 合并为一张截图",
+        "缓存能回答时禁止补查 Figma"
+      ]
+    },
+    {
+      "id": 12,
+      "name": "follow-up-uses-frozen-plan",
+      "prompt": "命名写回完成后，用户追问：节点 123:456 为什么被 skip，它当时属于哪个结构组？",
+      "expected_output": "从保存的 Naming Plan Freeze 快照回答，不重新扫描页面或运行 Coverage。",
+      "files": [],
+      "expectations": [
+        "优先按 nodeId 查询冻结 items",
+        "命中时禁止重建 Scan Ledger、重跑 Coverage、重新分组或调用 AI",
+        "冻结结果和缓存都未命中时才允许最小补查",
+        "补查不得修改已冻结计划"
+      ]
+    },
+    {
+      "id": 13,
+      "name": "overflow-splits-without-range-retry",
+      "prompt": "预览图下有 6 个一级板块，其中板块4单次轻索引超过 Figma 返回上限并被截断；其结构为 GROUP → GROUP → FRAME A / FRAME B，另有 COMPONENT C。请继续完成 Coverage。",
+      "expected_output": "Runner 内部完成结构递归拆分，Agent 只收到完整扫描结果；Coverage 从缓存中的完整叶范围合并。",
+      "files": [],
+      "expectations": [
+        "不得为了恢复截断内容重读板块4，也不得先退回读取整个预览图",
+        "不得按 25 个 Text 或其他固定数量切分",
+        "GROUP 只作为包装层，最近的 FRAME A、FRAME B 和 COMPONENT C 成为互斥子范围",
+        "任一子范围再次超限时继续由 Runner 内部递归处理，每个范围最多一次",
+        "ancestorPath 和 component 使用块内字典引用，不在每个 Text 重复返回",
+        "Coverage 以缓存中已完成的 5 个一级块和板块4的完整叶子块为节点事实源",
+        "不得因没有直接子 Frame 要求用户修改 Figma 结构"
       ]
     }
   ]
