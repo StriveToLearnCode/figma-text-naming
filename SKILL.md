@@ -1,6 +1,6 @@
 ---
 name: figma-text-naming
-description: Use when 用户提供 Figma Design 链接并明确要求动态文字或特效文字命名、特效文本、文案去重或重复文案命名；识别完整效果区域中的动态 Text，生成、复核或写回业务名称，可按需上传 Page Center。仅查看、实现、静态文字编辑或只给链接时不触发。
+description: Use when 用户提供 Figma Design 链接并明确要求动态文字或特效文字命名、特效文本、文案去重或重复文案命名；基于完整效果区域的 Figma 结构与语义识别动态 Text，生成、复核或写回业务名称，可按需上传 Page Center。仅查看、实现、静态文字编辑或只给链接时不触发。
 ---
 
 # Figma 动态文本命名
@@ -9,97 +9,125 @@ description: Use when 用户提供 Figma Design 链接并明确要求动态文�
 
 - 调用 Figma `use_figma` 前，加载并遵循 `figma-use` Skill。
 - 完整读取 [动态文本命名规范](references/dynamic-text-naming-rules.md)。该文件只负责“已经确认需要命名的文本，名称应该怎么取”，是名称格式、业务域、字段语义、命名证据、重复文案拆名和兼容迁移的唯一事实源；本文件只维护范围、候选、读取、执行和输出流程。
-- 只接受 Figma Design 链接和用户自然语言要求作为任务输入，只读取链接限定的文件、页面或节点。不得读取飞书、需求文档、代码仓库、外部配置或其他资料作为命名证据。
-- 只命名完整效果展示区域内或与其有明确归属关系的可编辑 `TEXT`。切图、素材陈列、设计标注、说明区和非最终效果展示区不进入扫描账本，不计入扫描数或 `skip`；但仍须按候选发现需要读取切图，用于区域级差异比对和烘焙排除。
+- 只接受 Figma Design 链接和用户自然语言要求作为任务输入，只读取链接限定的文件、页面或节点。候选判断不得读取飞书、代码仓库、需求文档、API、`ui-meta`、`review.textKey` 或外部配置。
+- 只命名完整效果展示区域内或与其有明确归属关系的可编辑 `TEXT`。切图、素材陈列、设计标注、说明区和非最终效果展示区不进入扫描账本，不计入扫描数或 `skip`。
 - 将 Figma Design 链接与“动态文字命名”“特效文字命名”“特效文本”“文案去重”或“重复文案命名”之一共同视为默认写回授权。用户明确要求只读、预览、不要修改或先确认时，禁止写入。
 
-## 核心流程
+## 原子执行顺序
 
-1. **定位完整效果展示区域并建立扫描账本。** 根据页面结构、视觉完整性、素材关系、位置和标注识别完整页面、弹窗、浮层、独立状态或明确业务模块，不要求容器名称包含“预览图”。只将目标区域的可编辑 `TEXT` 纳入账本。无法可靠定位时，不得扩大到整页盲扫；记录范围证据不足并等待确认。
-2. **收集两类候选信号。** 对账本全量 Text 运行占位符检测，同时按完整效果区域执行预览图/切图比对。不得先用占位符结果过滤账本；切图不进入账本不等于省略切图读取。候选原文必须来自 `node.characters`，不得用当前图层名称代替。
-3. **审计候选覆盖。** 为账本每项记录切图比较状态，并调用 `auditDynamicTextCandidateCoverage`。只有全部 Text 都完成“占位符 + 切图状态”评估后才可继续；缺失任何一项时不得冻结计划或写入。
-4. **批量补充最少充分证据。** 按一级板块、共享祖先、Component / Instance、空间区域和已确认素材关系聚类候选，共享已读取的结构、相邻文案、平行字段、组件、素材和视觉证据。只有独立证据缺口仍存在时才逐层扩读；在用户范围内仍不能确定则进入 `confirm`，不得猜测。
-5. **按命名规则生成或复核名称。** 对每个已确认候选，直接应用 `references/dynamic-text-naming-rules.md`，不在本文件另行解释业务域、字段语义、当前名称、重复原文、HTML 同异、Page Center Key 冲突或迁移规则。
-6. **处理需要完整 HTML 的候选。** 按“规范 HTML”读取样式并生成 HTML，再把结果交给命名规则完成重复文案复用或拆名。非候选普通文字不参与此阶段。
-7. **生成并冻结 naming plan。** 先确认候选覆盖审计为 `complete`，再收集当前名称和拟写名称中的所有唯一值，一次批量运行 `node '<本 Skill 目录>/scripts/validate-dynamic-text-name.mjs' <name...>`，并始终解析完整 JSON 结果。当前名称格式失败只表示不能 `keep`，不得阻断可靠的新名称；拟写名称格式失败则不得写入。继续按命名规则完成语义和冲突检查，并为账本中的每个节点确定且仅确定一个结果：`rename`、`keep`、`skip` 或 `confirm`。
-8. **冻结并执行计划。** 用户要求上传 Page Center 时，先完成“Page Center 上传”第 1 至 3 步，再进行任何 Figma 写入。随后只读模式输出预览并停止；默认模式按“写入与回读”执行，再通过明确可用的 Page Center 文本同步出口上传。计划冻结后不得重新分析、分组或改变 `finalName`。
+严格按以下顺序一次执行，不得跳步、交错或回退：
 
-## 候选检测
+`Scan Ledger -> Placeholder Scan -> Batch AI Semantic Assessment -> Coverage Audit -> Candidate Freeze -> Naming -> Preflight -> Naming Plan Freeze -> Figma Write -> Readback`
 
-候选池必须满足：
+1. **Scan Ledger**：定位完整效果展示区域，将范围内或明确归属该区域的全部可编辑 `TEXT` 记入账本。不得根据 placeholder、当前名称、样式、切图状态或其他候选信号提前裁剪。
+2. **Placeholder Scan**：对账本全部 Text 批量执行 `hasDynamicPlaceholder(node.characters)`。命中项直接写入 `semanticAssessment: "dynamic"`，不再交给 AI 证明。
+3. **Batch AI Semantic Assessment**：只把没有 placeholder 的账本 Text 分组交给 AI。每组一次分析，不得逐 Text 调 AI。
+4. **Coverage Audit**：调用 `auditDynamicTextCandidateCoverage`，确认每项已经具有 `nodeId`、`characters` 和合法的 `semanticAssessment`。不完整时立即停止。
+5. **Candidate Freeze**：调用 `freezeDynamicTextCandidates` 一次冻结结果。只有 `dynamic` 进入 Naming，`static` 映射为 `skip`，`confirm` 映射为 `confirm`。
+6. **Naming**：只对冻结的 dynamic 候选应用 `references/dynamic-text-naming-rules.md`，生成或复核名称；不得另写业务域或 semantic-key 规则。
+7. **Preflight**：按需完成重复原文与 HTML 分组、名称批量校验、Figma 名称冲突和 Page Center `key -> HTML` 冲突检查。
+8. **Naming Plan Freeze**：为账本每个节点确定唯一结果 `rename`、`keep`、`skip` 或 `confirm` 并冻结计划。
+9. **Figma Write**：非只读任务只批量写入冻结计划中的 `rename` 项。
+10. **Readback**：批量回读所有写入项并与冻结的 `finalName` 对比。用户要求上传 Page Center 时，只在回读后消费同一冻结计划上传并回读。
 
-`候选池 = 占位符命中 ∪ 已验证的预览图/切图差异命中`
+前一阶段未完成不得进入后一阶段。禁止边发现、边命名、边写回。Naming Plan Freeze 后不得重新调用 AI 改动态判断，不得修改 `result`、`finalName` 或分组。
 
-- `hasDynamicPlaceholder(node.characters)` 只返回占位符信号，不是完整候选判断。禁止使用 `data.filter((item) => hasDynamicPlaceholder(item.characters))` 或任何等价逻辑生成最终候选池。
-- 对账本中的每个 `TEXT` 调用 `assessDynamicTextCandidate`，显式提供 `sliceComparisonStatus`：无可比切图使用 `not-available`；完整效果有而切图缺失使用 `verified-difference`；两边都有使用 `verified-baked`；配对、共同区域或 Text 映射未核实使用 `unverified`。
-- `verified-difference` 与占位符任一命中即可进入候选池；`unverified` 进入 `confirm`；`verified-baked` 作为烘焙内容进入 `skip`。只有 `not-available` 且占位符也未命中时，才可因无候选证据进入 `skip`。
-- 使用 `auditDynamicTextCandidateCoverage` 检查账本全量覆盖。缺少 `characters` 或 `sliceComparisonStatus` 的节点为 `unassessed`，覆盖审计必须失败。
-- 当前名称看似合规的候选仍须进入命名复核。范围内不存在可比切图时，占位符命中即可成为候选，无需逐节点寻找切图。
+## Scan Ledger 与 Placeholder
 
-## 切图比对
+- 先通过页面结构、视觉完整性、素材关系、位置和标注识别完整页面、弹窗、浮层、独立状态或明确业务模块，不要求容器名称包含“预览图”。无法可靠定位时不得扩大到整页盲扫，应等待用户确认范围。
+- 账本必须保留目标区域全部可编辑 Text。禁止 `data.filter((item) => hasDynamicPlaceholder(item.characters))` 或任何等价的提前过滤。
+- 每项至少保留 `nodeId` 与逐字复制的 `characters`，并记录所属一级板块及已批量读取的结构归属供后续复用。不得用 `node.name` 替代 `characters`。
+- `applyPlaceholderScan` 返回与输入等长的账本；placeholder 命中项直接得到 `dynamic`，未命中项保持待 AI 判断。
 
-- 以完整效果展示区域为单位建立“完整效果区域 ↔ 对应切图区域”关系，不得默认为每个目标 Text 逐节点寻找切图。
-- 关系明确时，一次确认版本、语言、界面状态和共同覆盖区域，再统一找出“完整效果中存在、切图中缺失”的文字，并唯一映射到可编辑 `TEXT`。
-- 关系不明确时，结合页面结构、图层命名、空间位置、设计标注和非文字视觉特征寻找可能的切图，再验证版本、语言、界面状态和共同覆盖区域；不能只凭视觉相似认定。
-- 已由占位符规则进入候选池的节点，不要求为了证明候选再次寻找切图；但若已有可靠区域比对，切图中包含同一文字的烘焙排除证据优先。
-- 裁剪、遮挡、缩放、清晰度、蒙版、素材版本、语言或界面状态不同造成的差异不得自动命名。只有图片像素而没有唯一对应的可编辑 `TEXT` 时也不得命名。
-- 两图差异只用于发现候选或排除烘焙文字；命名时能否采用相关 Figma 信息，统一按命名规则中的语义证据边界判断。最终原文必须逐字取自唯一匹配节点的 `characters`，不得用 OCR 结果代替或改写。
+## Batch AI Semantic Assessment
 
-## 规范 HTML
+AI 只回答一个问题：
 
-- 根据命名规则确定需要比较 HTML 的重复文案组；用户要求上传 Page Center 时，再为其余待上传候选补齐 HTML。非重复且不上传的候选不得仅为普通命名读取完整样式或生成 HTML。
-- 批量读取所需节点的 styled text segments。确需完整样式但无法取得时，将该项记为 `confirm`，不得以纯 `characters` 代替 HTML。
-- style 属性固定按颜色、字号、字重、行高输出；按 `100px = 1rem` 转换字号；将 `X`、`XX`、`xx` 等动态占位符转换为 `{{}}`；多种分段样式生成连续的多个 `<span>`。比较范围包括文案、颜色、字号、字重、行高、换行、空白和 styled text 分段生成的全部 HTML。不得修改原始 `characters`。
-- 只使用任务中明确可用的确定性 HTML 序列化合同；缺少颜色、行高、字重、转义、空白或占位符转换等必要合同，或无法保证同一 styled text segments 稳定生成同一 HTML 时，将相关项记为 `confirm`，不得临时拼接另一套 HTML。
-- 大量重复节点先按已有文本和样式信息分组，再生成最终 HTML，避免重复处理明显一致的节点。
+> 这个 Text 在当前 UI 结构中，是一个需要由内容/数据填入或替换的字段，还是设计本身的固定展示内容？
 
-## 结果模型
+每个 Text 的输出值只允许：
 
-账本中的每个节点只使用以下一个结果：
+- `dynamic`：当前 Figma 结构和语义足以判断它是需要由数据或状态内容填入或替换的字段。
+- `static`：当前 Figma 结构和语义足以判断它属于设计固定展示内容。
+- `confirm`：仅凭当前 Figma 无法可靠区分。
 
-- `rename`：已经确认需要命名，当前名称按命名规则不能保留，且可靠的新名称已经通过全部检查。
-- `keep`：已经确认需要命名，当前名称通过命名规则的全部检查。
-- `skip`：未命中占位符和可靠差异候选，或可靠切图比对证明文字已烘焙在素材中。
-- `confirm`：观察到候选信号，但范围、素材配对、共同区域、Text 映射或命名所需证据不足。
+不得输出或使用置信度，也不得把 `confirm` 自动转换成 `dynamic` 或 `static`。不得维护 progress、ranking、nickname、countdown、title、rule、threshold、reward 等业务类型白名单，不得通过 `text.includes(...)`、`parentName.includes(...)` 或同类业务语义硬编码决定动态性。
 
-`confirm` 不得写回猜测名称，`skip` 不参与命名。范围外 Text 不使用这四种结果，也不计入扫描总数。
+判断对象是 Text 在结构中的“槽位职责”，不是字符看起来像数字、名称或时间：
 
-## Page Center 上传
+- 同一职责槽位会随内容、数据或界面状态替换，即使当前 `characters` 是普通字面值，也判 `dynamic`。
+- 一组平行位置各自展示稳定且不同的字面内容，并共同构成设计内固定配置、选项或刻度时，判 `static`；不能因为它们是数值或处于重复结构就判 dynamic。
+- 当前结构既能解释为可替换槽位，也能解释为固定设计内容时，判 `confirm`。
 
-仅当用户明确要求上传 Page Center 时执行：
+优先按一级板块组织批次，再在板块内复用共享祖先、Component / Instance 与空间区域上下文。AI 每次分析的输入结构固定为：
 
-1. 只消费已冻结 naming plan，不得重新分组、去重、命名、修改 `finalName`，也不得根据 Page Center 结果反向修改 Figma 名称。
-2. 用最终名称和规范 HTML 建立完整 `key -> HTML` 映射；Key 去掉 `文案/` 前缀，value 不得直接使用 `node.characters`。
-3. 在任何写入前，对冻结计划的完整 `name -> HTML` 集合调用 `findPageCenterKeyConflicts` 一次；名称已在 naming plan 冻结前完成唯一值校验，此处不得重复校验名称。不通过时按命名规则停止，不得在上传阶段二次改名。
-4. 上传前加载并遵循 `pagecenter` Skill。公共 `pc` CLI 没有 text key / HTML 写入命令，不得编造命令或复用页面配置 API；只使用任务中明确可用且有写入、批量和回读合同的 Page Center 文本同步出口。
-5. 存在可靠出口时，优先批量上传全部 `rename` 和 `keep` 项并批量回读；接口不支持可靠批量时才逐项执行。没有可靠出口时不得声称上传成功，按实际状态报告失败。
-6. 上传失败只处理上传本身，不得触发第二轮 Figma 去重、重新命名或修改冻结计划。
+```json
+{
+  "groupId": "stable-group-id",
+  "groupingBasis": "primary-section | shared-ancestor | component-instance | spatial-region",
+  "context": {
+    "primarySection": { "nodeId": "...", "name": "..." },
+    "sharedAncestors": [{ "nodeId": "...", "type": "...", "name": "..." }],
+    "componentOrInstance": { "nodeId": "...", "type": "...", "name": "..." },
+    "spatialRegion": { "label": "...", "screenshotRef": "optional-current-figma-screenshot" },
+    "neighboringTexts": [{ "nodeId": "...", "characters": "...", "name": "...", "relation": "..." }],
+    "parallelFields": [{ "nodeId": "...", "characters": "...", "name": "...", "relation": "..." }],
+    "repeatedStructures": [{ "ancestorNodeId": "...", "memberNodeIds": ["..."] }]
+  },
+  "texts": [{ "nodeId": "...", "characters": "...", "name": "...", "parentPath": ["..."] }]
+}
+```
 
-## Figma 读取与收敛
+同一批次输出：
 
-- 优先批量读取信息密度高、成本低的页面结构、节点边界、Text 基础信息和素材关系，再围绕候选的具体证据缺口扩展。不得按单个 Text 逐个探索页面结构。
-- 优先复用同一板块、共享祖先、组件和空间区域的上下文；祖先、相邻文案、素材关系和视觉证据原则上只读取一次。
-- 当前证据足以确定结果时立即收敛。每次扩读必须解决明确缺口；不得为了完整性读取样式、完整节点树、额外截图或更广结构，也不得把置信度当成事实证据。
-- 仅在 HTML 比较或 Page Center 上传确需时读取 styled text segments。普通候选识别和单一命名不得默认读取完整样式或生成 HTML。
-- 优先批量完成 Text 基础信息、同板块上下文、样式、名称校验、Figma 写入与回读、Page Center 上传与回读。只有工具不支持可靠批量时才退化为逐项方式；退化不得改变范围、判断、结果或校验标准。
-- 性能优化只用于减少 Figma、AI 和脚本的重复往返，不得减少候选覆盖、跳过必需校验或降低命名准确性。
+```json
+{
+  "assessments": [
+    { "nodeId": "node-id-1", "semanticAssessment": "dynamic" },
+    { "nodeId": "node-id-2", "semanticAssessment": "static" },
+    { "nodeId": "node-id-3", "semanticAssessment": "confirm" }
+  ]
+}
+```
 
-## 写入与回读
+输入只能使用当前 Figma 范围内已经读取的 `node.characters`、当前 `node.name`、一级板块、父级/祖先结构、相邻标签与兄弟文案、Component / Instance、平行字段、重复业务结构和对应区域截图。不得为了单个 Text 逐层探索祖先；先批量读取并复用组上下文，只有整个分组仍缺共同结构时才补读一次。
 
-- 写入阶段只消费冻结计划，只修改 `rename` 对应文字图层的 `node.name`。`keep`、`skip` 和 `confirm` 不写入。
-- 不得修改 `characters`、样式、位置、尺寸、可见性、层级、一级板块结构、组件关系或其他 Figma 数据。
-- 优先批量写入全部 `rename`，再批量回读全部已写节点；工具不支持可靠批量时才逐项执行。
-- 将每个节点的实际 `node.name` 与冻结计划中的 `finalName` 对比。所有写入项都必须回读验证；写入失败或不一致计入 `failed`，不得报告为成功，不得因此生成另一套名称。
-- 写后回读只验证已写名称是否一致，不能证明候选覆盖完整，也不得替代写入前的 `auditDynamicTextCandidateCoverage`。
-- Figma 连接器不可用、无编辑权限或无法完成回读时，只报告实际状态。
+## 可选切图反证
+
+- 切图不再是候选发现的必经输入，主流程不要求 `sliceStatus` 或 `sliceComparisonStatus`，也不默认调用切图 helper。
+- 没有切图、找不到切图或对应关系复杂时，继续执行 AI Semantic Assessment，不得阻断或降级为 `confirm`。
+- 只有对应切图已经容易取得、关系明确，并能可靠证明某段文字已包含在图片素材本身时，才可把当前 Figma 截图证据放入该组 AI 上下文，用于排除非 placeholder Text。
+- `SLICE_COMPARISON_STATUS`、`assessLegacySliceEvidence` 和 `auditLegacySliceCandidateCoverage` 仅为旧实验 A/B 与回退保留。`verified-difference`、`verified-text-slot`、`no-text-slot`、slice coverage 等旧状态不得成为主候选成立或 Coverage 完成的条件。
+
+## Coverage、冻结与命名
+
+- Coverage Audit 只保证所有账本 Text 已被判断，不判断业务域、semantic-key、HTML 或最终名称。
+- 每项最终必须有 `{ nodeId, characters, semanticAssessment: "dynamic" | "static" | "confirm" }`。缺少任一字段、值不合法，或 placeholder 项不是 `dynamic` 时，`complete = false`。
+- Coverage 不完整时禁止 Candidate Freeze、Naming、Preflight、Naming Plan Freeze、Figma Write 和 Page Center upload；Readback 不能替代 Coverage。
+- Candidate Freeze 后只有 `semanticAssessment === "dynamic"` 的节点进入命名。`static -> skip`；`confirm -> confirm`，两者均不参与命名。
+- dynamic 候选后续完整应用 `references/dynamic-text-naming-rules.md`。命名证据不足时仍可在命名阶段得到 `confirm`，但不得反向修改已冻结的动态判断。
+
+## 规范 HTML 与 Preflight
+
+- 根据命名规则确定需要比较 HTML 的重复文案组；用户要求上传 Page Center 时，再为其余待上传候选补齐 HTML。非重复且不上传的候选不得仅为普通命名读取 styled text segments。
+- 批量读取所需节点的 styled text segments。style 属性固定按颜色、字号、字重、行高输出；按 `100px = 1rem` 转换字号；将动态占位符转换为 `{{}}`；多种分段样式生成连续 `<span>`。无法取得必要样式或不能稳定序列化时记为 `confirm`，不得用纯 `characters` 替代 HTML。
+- 按命名规则完成重复原文、业务字段与完整 HTML 分组。收集当前名称和拟写名称的全部唯一值，一次批量运行 `node '<本 Skill 目录>/scripts/validate-dynamic-text-name.mjs' <name...>` 并解析完整 JSON。
+- 用户要求上传 Page Center 时，在任何写入前对冻结计划的完整 `name -> HTML` 集合调用 `findPageCenterKeyConflicts` 一次。冲突时按命名规则停止，不得在上传阶段二次分组、改名或覆盖。
+- 上传前加载并遵循 `pagecenter` Skill，只使用任务中明确可用且有写入、批量和回读合同的文本同步出口。优先批量上传与回读；上传失败不得改变冻结计划。
+
+## 性能与 Figma 读写
+
+- Text 基础信息、一级板块、共享祖先、组件、空间区域、名称校验、写入和回读均优先批量处理；同板块和同共享祖先上下文只读取一次。
+- 不逐 Text 调 AI，不逐 Text 探索祖先，不逐 Text 寻找切图。一组 Text 一次 AI 分析。
+- styled text segments 只按命名去重或 HTML 需要读取。每次补读必须解决明确的分组证据缺口，不扩大用户范围。
+- 写入阶段只消费冻结计划，只修改 `rename` 对应文字图层的 `node.name`。`keep`、`skip`、`confirm` 不写入；不得修改 `characters`、样式、位置、尺寸、可见性、层级、板块结构、组件关系或其他 Figma 数据。
+- 优先批量写入全部 `rename`，再批量回读。无法写入或回读不一致时按实际状态报告失败，不得生成另一套名称。
 
 ## 输出合同
 
-- 只读、预览或不要修改时，输出候选的动态文本、完整中文含义、结果和名称；`confirm` 只给简短待确认原因。默认使用编号列表，只有用户明确要求时才使用 Markdown 表格。
-- “动态文本”必须逐字复制 `node.characters`，保留原语言、标点及全半角、大小写、空白、换行和占位符的原始写法与数量。不得用图层名称、翻译、业务标签或语义摘要代替，不得翻译、概括、纠错、补删文字、调整标点、统一大小写或把占位符替换为 `{{}}`。合并预览时仍须逐项列出组内每个不同原文。
-- “完整中文含义”必须忠实表达完整原文，将占位符统一表示为 `{{}}`，保留数量、状态、时间、条件和否定关系；不得增加原文没有的信息，也不得把完整句子概括为字段标签。中文含义与英文名称分别处理。
+- 只读、预览或不要修改时，输出 dynamic 候选的动态文本、完整中文含义、结果和名称，并列出语义判断为 `confirm` 的 Text 与简短原因。默认使用编号列表，只有用户明确要求时才使用 Markdown 表格。
+- “动态文本”必须逐字复制 `node.characters`，保留原语言、标点、大小写、空白、换行和 placeholder 写法；不得用图层名、翻译或业务标签代替。只有“完整中文含义”将 placeholder 表示为 `{{}}`。
 - “共扫描 N 个文本”只统计进入账本的完整效果展示区域 Text；切图、素材陈列、标注和说明区域中的 Text 不计入 `N` 或 `skip`。
-- 写回后的最终回执只输出一行：`命名完成：共扫描 N 个文本，已正确命名 M 个，跳过 S 个，待确认 C 个，失败 F 个。` `已正确命名` 包含写回并回读一致的 `rename` 和复核正确的 `keep`；`跳过` 对应 `skip`；`待确认` 对应 `confirm`；只有写入失败、回读不一致或其他执行错误计入 `失败`。
-- 仅当 `待确认` 或 `失败` 大于零时，逐项列出对应动态文本和简短原因。不得列出成功项、跳过项、节点 ID、内部账本、置信度、样式签名或执行日志，除非用户明确要求。
-- 上传 PC 时，在命名摘要后另加一行 `PC 上传：成功 U 个，失败 P 个。`，只逐项列出上传失败项。样式冲突导致的 `confirm` 仍列在待确认项中，并说明无法确定稳定场景限定；不得把纯文本报告为 HTML 上传成功。
-- 没有候选时用一句话说明，不输出空表格。
+- 写回后输出：`命名完成：共扫描 N 个文本，已正确命名 M 个，跳过 S 个，待确认 C 个，失败 F 个。` 已正确命名包含回读一致的 `rename` 和复核正确的 `keep`；`static` 对应 `skip`；语义或命名阶段的 `confirm` 均计入待确认。
+- 仅当待确认或失败大于零时逐项列出对应原文和简短原因。不得列出成功项、跳过项、节点 ID、内部账本、置信度、样式签名或执行日志，除非用户明确要求。
+- 上传 PC 时另加：`PC 上传：成功 U 个，失败 P 个。` 只逐项列出上传失败项。没有 dynamic 候选时用一句话说明，不输出空表格。

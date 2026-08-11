@@ -4,6 +4,14 @@ export const DYNAMIC_PLACEHOLDER_PATTERN =
 export const CANONICAL_NAME_PATTERN =
   /^文案\/[a-z]+(?:-[a-z]+)?\/[a-z]+(?:-[a-z]+)?$/;
 
+export const SEMANTIC_ASSESSMENT = Object.freeze({
+  DYNAMIC: "dynamic",
+  STATIC: "static",
+  CONFIRM: "confirm",
+});
+
+const SEMANTIC_ASSESSMENTS = new Set(Object.values(SEMANTIC_ASSESSMENT));
+
 export const SLICE_COMPARISON_STATUS = Object.freeze({
   NOT_AVAILABLE: "not-available",
   VERIFIED_DIFFERENCE: "verified-difference",
@@ -15,7 +23,7 @@ const SLICE_COMPARISON_STATUSES = new Set(
   Object.values(SLICE_COMPARISON_STATUS),
 );
 
-/** 只判断占位符信号，不能单独用作完整候选池过滤器。 */
+/** 只判断占位符信号；调用方必须对完整扫描账本执行本函数。 */
 export function hasDynamicPlaceholder(characters) {
   return (
     typeof characters === "string" &&
@@ -24,10 +32,194 @@ export function hasDynamicPlaceholder(characters) {
 }
 
 /**
- * 合并占位符和预览图/切图差异两类候选信号。
- * 切图比较由 Figma 流程按区域完成，本函数只消费已经核实的比较状态。
+ * 对完整扫描账本执行 placeholder scan，不裁剪非命中节点。
+ * placeholder 是硬信号，命中节点无需进入 AI semantic assessment。
  */
+export function applyPlaceholderScan(entries) {
+  if (!Array.isArray(entries)) {
+    throw new TypeError("text-entries-must-be-an-array");
+  }
+
+  return entries.map((entry, index) => {
+    if (typeof entry?.characters !== "string") {
+      throw new TypeError(`text-characters-must-be-a-string: ${index}`);
+    }
+
+    if (!hasDynamicPlaceholder(entry.characters)) {
+      return { ...entry };
+    }
+
+    return {
+      ...entry,
+      semanticAssessment: SEMANTIC_ASSESSMENT.DYNAMIC,
+      semanticAssessmentSource: "placeholder",
+    };
+  });
+}
+
+/**
+ * 一次合并一批 AI semantic assessment。缺失项保持未判断，由 coverage audit 拦截。
+ */
+export function applyBatchSemanticAssessments(entries, assessments) {
+  if (!Array.isArray(entries) || !Array.isArray(assessments)) {
+    throw new TypeError("entries-and-assessments-must-be-arrays");
+  }
+
+  const assessmentByNodeId = new Map();
+  for (const assessment of assessments) {
+    const nodeId = assessment?.nodeId;
+    const value = assessment?.semanticAssessment;
+
+    if (typeof nodeId !== "string" || nodeId.length === 0) {
+      throw new TypeError("assessment-node-id-required");
+    }
+    if (!SEMANTIC_ASSESSMENTS.has(value)) {
+      throw new TypeError(`invalid-semantic-assessment: ${nodeId}`);
+    }
+    if (assessmentByNodeId.has(nodeId)) {
+      throw new TypeError(`duplicate-semantic-assessment: ${nodeId}`);
+    }
+
+    assessmentByNodeId.set(nodeId, value);
+  }
+
+  const knownNodeIds = new Set(entries.map((entry) => entry?.nodeId));
+  for (const nodeId of assessmentByNodeId.keys()) {
+    if (!knownNodeIds.has(nodeId)) {
+      throw new TypeError(`unknown-assessment-node-id: ${nodeId}`);
+    }
+  }
+
+  return entries.map((entry, index) => {
+    if (typeof entry?.nodeId !== "string" || entry.nodeId.length === 0) {
+      throw new TypeError(`text-node-id-required: ${index}`);
+    }
+    if (typeof entry.characters !== "string") {
+      throw new TypeError(`text-characters-must-be-a-string: ${index}`);
+    }
+
+    const value = assessmentByNodeId.get(entry.nodeId);
+    if (hasDynamicPlaceholder(entry.characters)) {
+      if (value !== undefined) {
+        throw new TypeError(`placeholder-node-must-not-be-ai-assessed: ${entry.nodeId}`);
+      }
+      return {
+        ...entry,
+        semanticAssessment: SEMANTIC_ASSESSMENT.DYNAMIC,
+        semanticAssessmentSource: "placeholder",
+      };
+    }
+
+    if (value === undefined) {
+      return { ...entry };
+    }
+
+    return {
+      ...entry,
+      semanticAssessment: value,
+      semanticAssessmentSource: "ai",
+    };
+  });
+}
+
+/** 将账本三态映射为候选阶段结果；切图状态不是必填项或成立条件。 */
 export function assessDynamicTextCandidate(input) {
+  const validNodeId = typeof input?.nodeId === "string" && input.nodeId.length > 0;
+  const validCharacters = typeof input?.characters === "string";
+  const semanticAssessment = input?.semanticAssessment;
+
+  if (!validNodeId || !validCharacters || !SEMANTIC_ASSESSMENTS.has(semanticAssessment)) {
+    return {
+      assessed: false,
+      result: "unassessed",
+      semanticAssessment: null,
+      reasonCodes: ["semantic-assessment-required"],
+    };
+  }
+
+  if (
+    hasDynamicPlaceholder(input.characters) &&
+    semanticAssessment !== SEMANTIC_ASSESSMENT.DYNAMIC
+  ) {
+    return {
+      assessed: false,
+      result: "unassessed",
+      semanticAssessment: null,
+      reasonCodes: ["placeholder-must-be-dynamic"],
+    };
+  }
+
+  if (semanticAssessment === SEMANTIC_ASSESSMENT.DYNAMIC) {
+    return {
+      assessed: true,
+      result: "candidate",
+      semanticAssessment,
+      reasonCodes: [],
+    };
+  }
+
+  return {
+    assessed: true,
+    result:
+      semanticAssessment === SEMANTIC_ASSESSMENT.STATIC ? "skip" : "confirm",
+    semanticAssessment,
+    reasonCodes: [],
+  };
+}
+
+/**
+ * Coverage 只检查完整账本是否都有 nodeId、characters 和三态语义判断。
+ * 它不判断名称；不完整时不得冻结候选或 naming plan，也不得写入或上传。
+ */
+export function auditDynamicTextCandidateCoverage(entries) {
+  if (!Array.isArray(entries)) {
+    throw new TypeError("text-entries-must-be-an-array");
+  }
+
+  const assessments = entries.map(assessDynamicTextCandidate);
+  const uncoveredIndexes = assessments.flatMap((assessment, index) =>
+    assessment.assessed ? [] : [index],
+  );
+
+  return {
+    complete: uncoveredIndexes.length === 0,
+    uncoveredIndexes,
+    uncoveredNodeIds: uncoveredIndexes.map(
+      (index) => entries[index]?.nodeId ?? null,
+    ),
+    assessments,
+  };
+}
+
+/** Coverage 完成后一次冻结候选；后续只有 dynamic 节点进入命名。 */
+export function freezeDynamicTextCandidates(entries) {
+  const coverage = auditDynamicTextCandidateCoverage(entries);
+  if (!coverage.complete) {
+    throw new Error("semantic-coverage-incomplete");
+  }
+
+  const outcomes = coverage.assessments.map((assessment, index) =>
+    Object.freeze({
+      nodeId: entries[index].nodeId,
+      characters: entries[index].characters,
+      semanticAssessment: assessment.semanticAssessment,
+      result: assessment.result,
+    }),
+  );
+
+  return Object.freeze({
+    outcomes: Object.freeze(outcomes),
+    candidates: Object.freeze(
+      outcomes.filter((outcome) => outcome.semanticAssessment === "dynamic"),
+    ),
+  });
+}
+
+/**
+ * 旧切图实验的独立兼容 helper。主候选流程不默认调用，也不要求 slice status。
+ * 仅当现成切图关系明确时，可消费其结果作为“文字已烘焙”的反证。
+ */
+export function assessLegacySliceEvidence(input) {
   if (typeof input?.characters !== "string") {
     return {
       assessed: false,
@@ -87,16 +279,13 @@ export function assessDynamicTextCandidate(input) {
   };
 }
 
-/**
- * 审计扫描账本是否逐项完成候选评估。
- * 写入回读不能替代本审计；存在 unassessed 时不得冻结 naming plan。
- */
-export function auditDynamicTextCandidateCoverage(entries) {
+/** 旧切图 coverage 仅供显式 A/B；不得替代主流程的语义 Coverage Audit。 */
+export function auditLegacySliceCandidateCoverage(entries) {
   if (!Array.isArray(entries)) {
     throw new TypeError("text-entries-must-be-an-array");
   }
 
-  const assessments = entries.map(assessDynamicTextCandidate);
+  const assessments = entries.map(assessLegacySliceEvidence);
   const uncoveredIndexes = assessments.flatMap((assessment, index) =>
     assessment.assessed ? [] : [index],
   );

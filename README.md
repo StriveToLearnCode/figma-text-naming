@@ -2,7 +2,7 @@
 
 识别 Figma 完整效果区域中的动态文本，生成、复核或写回 `文案/${business-domain}/${semantic-key}`，并可按需上传 Page Center。执行流程以 [SKILL.md](SKILL.md) 为准，名称业务规则以 [动态文本命名规范](references/dynamic-text-naming-rules.md) 为唯一事实源。
 
-候选池取“占位符命中”和“完整效果/切图差异命中”的并集；写回前必须审计扫描账本的候选覆盖，写后回读只验证名称写入结果，不能替代覆盖审计。
+完整效果区域内的可编辑 Text 全量进入扫描账本：placeholder 命中项直接判为 dynamic，其余 Text 按结构上下文成组交给 AI 判断 dynamic、static 或 confirm。切图仅作为容易取得且关系明确时的可选反证；写回前必须审计每个账本 Text 是否已有三态判断。
 
 ## 使用方式
 
