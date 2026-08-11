@@ -4,324 +4,180 @@ export const DYNAMIC_PLACEHOLDER_PATTERN =
 export const CANONICAL_NAME_PATTERN =
   /^文案\/[a-z]+(?:-[a-z]+)?\/[a-z]+(?:-[a-z]+)?$/;
 
-const WEAK_BUSINESS_DOMAINS = new Set([
-  "txt",
-  "text",
-  "value",
-  "info",
-  "block",
-  "section",
-  "panel",
-  "tab",
-  "page",
-  "bottom",
-]);
+export const SLICE_COMPARISON_STATUS = Object.freeze({
+  NOT_AVAILABLE: "not-available",
+  VERIFIED_DIFFERENCE: "verified-difference",
+  VERIFIED_BAKED: "verified-baked",
+  UNVERIFIED: "unverified",
+});
 
-const WEAK_SEMANTIC_WORDS = new Set([
-  "txt",
-  "text",
-  "value",
-  "info",
-  "block",
-  "section",
-  "panel",
-]);
+const SLICE_COMPARISON_STATUSES = new Set(
+  Object.values(SLICE_COMPARISON_STATUS),
+);
 
-function addError(errors, code) {
-  if (!errors.includes(code)) {
-    errors.push(code);
-  }
-}
-
-export function isDynamicTextCandidate(characters) {
+/** 只判断占位符信号，不能单独用作完整候选池过滤器。 */
+export function hasDynamicPlaceholder(characters) {
   return (
     typeof characters === "string" &&
     DYNAMIC_PLACEHOLDER_PATTERN.test(characters)
   );
 }
 
-export function findDuplicateTextGroups(entries) {
+/**
+ * 合并占位符和预览图/切图差异两类候选信号。
+ * 切图比较由 Figma 流程按区域完成，本函数只消费已经核实的比较状态。
+ */
+export function assessDynamicTextCandidate(input) {
+  if (typeof input?.characters !== "string") {
+    return {
+      assessed: false,
+      result: "unassessed",
+      sources: [],
+      reasonCodes: ["text-characters-must-be-a-string"],
+    };
+  }
+
+  const status = input.sliceComparisonStatus;
+  if (!SLICE_COMPARISON_STATUSES.has(status)) {
+    return {
+      assessed: false,
+      result: "unassessed",
+      sources: [],
+      reasonCodes: ["slice-comparison-status-required"],
+    };
+  }
+
+  const placeholderMatched = hasDynamicPlaceholder(input.characters);
+
+  if (status === SLICE_COMPARISON_STATUS.UNVERIFIED) {
+    return {
+      assessed: true,
+      result: "confirm",
+      sources: placeholderMatched ? ["placeholder"] : [],
+      reasonCodes: ["slice-comparison-not-verified"],
+    };
+  }
+
+  if (status === SLICE_COMPARISON_STATUS.VERIFIED_BAKED) {
+    return {
+      assessed: true,
+      result: "skip",
+      sources: [],
+      reasonCodes: ["text-baked-in-slice"],
+    };
+  }
+
+  const sources = [];
+  if (placeholderMatched) {
+    sources.push("placeholder");
+  }
+  if (status === SLICE_COMPARISON_STATUS.VERIFIED_DIFFERENCE) {
+    sources.push("preview-slice-difference");
+  }
+
+  if (sources.length > 0) {
+    return { assessed: true, result: "candidate", sources, reasonCodes: [] };
+  }
+
+  return {
+    assessed: true,
+    result: "skip",
+    sources: [],
+    reasonCodes: ["no-dynamic-text-evidence"],
+  };
+}
+
+/**
+ * 审计扫描账本是否逐项完成候选评估。
+ * 写入回读不能替代本审计；存在 unassessed 时不得冻结 naming plan。
+ */
+export function auditDynamicTextCandidateCoverage(entries) {
   if (!Array.isArray(entries)) {
     throw new TypeError("text-entries-must-be-an-array");
   }
 
-  const indexesByCharacters = new Map();
+  const assessments = entries.map(assessDynamicTextCandidate);
+  const uncoveredIndexes = assessments.flatMap((assessment, index) =>
+    assessment.assessed ? [] : [index],
+  );
+
+  return {
+    complete: uncoveredIndexes.length === 0,
+    uncoveredIndexes,
+    assessments,
+  };
+}
+
+/**
+ * 按逐字相同的 characters 聚合重复文本。
+ * 返回原数组索引，避免复制 Figma 节点数据并保留调用方的节点映射。
+ */
+export function findDuplicateTextGroups(entries) {
+  const groups = new Map();
+
   entries.forEach((entry, index) => {
     if (typeof entry?.characters !== "string") {
       throw new TypeError(`text-characters-must-be-a-string: ${index}`);
     }
 
-    const indexes = indexesByCharacters.get(entry.characters) ?? [];
+    const indexes = groups.get(entry.characters) ?? [];
     indexes.push(index);
-    indexesByCharacters.set(entry.characters, indexes);
+    groups.set(entry.characters, indexes);
   });
 
-  return [...indexesByCharacters.entries()]
+  return [...groups.entries()]
     .filter(([, indexes]) => indexes.length > 1)
     .map(([characters, indexes]) => ({ characters, indexes }));
 }
 
-export function assessDynamicTextCandidate(input) {
-  if (isDynamicTextCandidate(input?.characters)) {
-    return {
-      candidate: true,
-      sources: ["placeholder"],
-      reasonCodes: [],
-    };
-  }
-
-  const comparison = input?.previewSliceComparison;
-  if (
-    comparison?.previewTextPresent !== true ||
-    comparison?.sliceTextAbsent !== true
-  ) {
-    return {
-      candidate: false,
-      sources: [],
-      reasonCodes: ["no-dynamic-text-evidence"],
-    };
-  }
-
-  const checks = {
-    "same-design-state": comparison.sameDesignStateVerified === true,
-    "common-region": comparison.commonRegionVerified === true,
-    "text-node-match": comparison.textNodeMatched === true,
-  };
-  const failedChecks = Object.entries(checks)
-    .filter(([, passed]) => !passed)
-    .map(([check]) => `preview-slice-${check}-not-verified`);
-
-  if (failedChecks.length > 0) {
-    return {
-      candidate: false,
-      needsConfirmation: true,
-      sources: ["preview-slice-difference"],
-      reasonCodes: failedChecks,
-    };
-  }
-
-  return {
-    candidate: true,
-    sources: ["preview-slice-difference"],
-    reasonCodes: [],
-  };
-}
-
+/** 只校验名称结构；业务域和字段语义由命名规则结合 Figma 上下文复核。 */
 export function validateDynamicTextName(name) {
-  const errors = [];
-
   if (typeof name !== "string") {
     return { valid: false, errors: ["name-must-be-string"] };
   }
 
-  if (!name.startsWith("文案/")) {
-    addError(errors, "missing-fixed-prefix");
-  }
-
-  if ((name.match(/\//g) ?? []).length !== 2) {
-    addError(errors, "slash-count-must-be-two");
-  }
-
-  if (name.includes("_")) {
-    addError(errors, "underscore-not-allowed");
-  }
-
-  if (/[a-z][A-Z]/.test(name)) {
-    addError(errors, "camel-case-not-allowed");
-  }
-
-  if (/[A-Z]/.test(name)) {
-    addError(errors, "uppercase-not-allowed");
-  }
-
-  if (/\d/.test(name)) {
-    addError(errors, "meaningless-number-not-allowed");
-  }
-
-  const [prefix, businessDomain, semanticKey, ...extraParts] = name.split("/");
-
-  if (prefix !== "文案") {
-    addError(errors, "missing-fixed-prefix");
-  }
-
-  if (!/^[a-z]+(?:-[a-z]+)?$/.test(businessDomain ?? "")) {
-    addError(errors, "business-domain-must-be-one-or-two-lowercase-words");
-  } else if (
-    businessDomain
-      .split("-")
-      .some((word) => WEAK_BUSINESS_DOMAINS.has(word))
-  ) {
-    addError(errors, "weak-business-domain-not-allowed");
-  }
-
-  if (
-    extraParts.length > 0 ||
-    !/^[a-z]+(?:-[a-z]+)?$/.test(semanticKey ?? "")
-  ) {
-    addError(errors, "semantic-key-must-be-one-or-two-lowercase-words");
-  } else if (
-    semanticKey.split("-").some((word) => WEAK_SEMANTIC_WORDS.has(word))
-  ) {
-    addError(errors, "weak-semantic-key-not-allowed");
-  }
-
   if (!CANONICAL_NAME_PATTERN.test(name)) {
-    addError(errors, "canonical-format-mismatch");
+    return { valid: false, errors: ["canonical-format-mismatch"] };
   }
+
+  const [, businessDomain, semanticKey] = name.split("/");
 
   return {
-    valid: errors.length === 0,
-    errors,
-    ...(errors.length === 0
-      ? { businessDomain, semanticKey }
-      : {}),
+    valid: true,
+    errors: [],
+    businessDomain,
+    semanticKey,
   };
 }
 
-export function toPageCenterKey(name) {
-  const validation = validateDynamicTextName(name);
-  if (!validation.valid) {
-    throw new TypeError(`invalid-dynamic-text-name: ${name}`);
-  }
-
-  return name.slice("文案/".length);
-}
-
+/**
+ * 找出映射到多个 HTML 的 Page Center Key。
+ * 同一 Key 重复出现是合法的，前提是每次对应的 HTML 完全相同。
+ */
 export function findPageCenterKeyConflicts(entries) {
-  if (!Array.isArray(entries)) {
-    throw new TypeError("pc-entries-must-be-an-array");
-  }
-
   const htmlByKey = new Map();
-  const conflictKeys = new Set();
+  const conflicts = new Set();
 
   for (const entry of entries) {
-    const key = toPageCenterKey(entry?.name);
-    if (typeof entry?.html !== "string") {
+    if (typeof entry?.name !== "string") {
+      throw new TypeError("pc-name-must-be-a-string");
+    }
+
+    // 名称来自已冻结且已完成唯一值校验的 naming plan。
+    const key = entry.name.slice("文案/".length);
+
+    if (typeof entry.html !== "string") {
       throw new TypeError(`pc-html-must-be-a-string: ${key}`);
     }
 
-    const existingHtml = htmlByKey.get(key);
-    if (existingHtml !== undefined && existingHtml !== entry.html) {
-      conflictKeys.add(key);
-    } else if (existingHtml === undefined) {
+    const previous = htmlByKey.get(key);
+
+    if (previous === undefined) {
       htmlByKey.set(key, entry.html);
+    } else if (previous !== entry.html) {
+      conflicts.add(key);
     }
   }
 
-  return [...conflictKeys].sort();
-}
-
-function contextChecks(input) {
-  const checks = {
-    sectionBoundary: input.sectionBoundaryVerified === true,
-    businessDomain: input.businessDomainVerified === true,
-    semanticKey: input.semanticKeyVerified === true,
-    conflict: input.conflictFree === true,
-  };
-
-  return {
-    checks,
-    complete: Object.values(checks).every(Boolean),
-  };
-}
-
-export function assessDynamicText(input) {
-  const candidateAssessment = assessDynamicTextCandidate(input);
-  if (candidateAssessment.needsConfirmation === true) {
-    return {
-      result: "confirm",
-      reasonCodes: candidateAssessment.reasonCodes,
-    };
-  }
-
-  if (!candidateAssessment.candidate) {
-    return { result: "skip", reasonCodes: candidateAssessment.reasonCodes };
-  }
-
-  if (input.evidenceSufficient !== true) {
-    return { result: "confirm", reasonCodes: ["insufficient-evidence"] };
-  }
-
-  const { checks, complete } = contextChecks(input);
-  if (!complete) {
-    const failedChecks = Object.entries(checks)
-      .filter(([, passed]) => !passed)
-      .map(([check]) => `${check}-not-verified`);
-    return { result: "confirm", reasonCodes: failedChecks };
-  }
-
-  const currentValidation = validateDynamicTextName(input.currentName ?? "");
-  const sharedName = input.duplicateTextName;
-
-  if (sharedName !== undefined) {
-    const sharedValidation = validateDynamicTextName(sharedName);
-    if (!sharedValidation.valid) {
-      return {
-        result: "confirm",
-        reasonCodes: ["duplicate-text-name-invalid", ...sharedValidation.errors],
-      };
-    }
-
-    if (input.duplicateTextFieldVerified !== true) {
-      return {
-        result: "confirm",
-        reasonCodes: ["duplicate-text-field-not-verified"],
-      };
-    }
-
-    if (typeof input.duplicateHtmlEquivalent !== "boolean") {
-      return {
-        result: "confirm",
-        reasonCodes: ["duplicate-html-equivalence-not-verified"],
-      };
-    }
-
-    if (input.duplicateHtmlEquivalent === false) {
-      const variantName = input.styleVariantName;
-      if (typeof variantName !== "string" || variantName === sharedName) {
-        return {
-          result: "confirm",
-          reasonCodes: ["distinct-html-requires-stable-context-name"],
-        };
-      }
-
-      const variantValidation = validateDynamicTextName(variantName ?? "");
-      if (!variantValidation.valid) {
-        return {
-          result: "confirm",
-          reasonCodes: [
-            "distinct-html-requires-stable-context-name",
-            ...variantValidation.errors,
-          ],
-        };
-      }
-
-      if (currentValidation.valid && input.currentName === variantName) {
-        return { result: "keep", name: variantName, reasonCodes: [] };
-      }
-
-      return { result: "rename", name: variantName, reasonCodes: [] };
-    }
-
-    if (currentValidation.valid && input.currentName === sharedName) {
-      return { result: "keep", name: sharedName, reasonCodes: [] };
-    }
-
-    return { result: "rename", name: sharedName, reasonCodes: [] };
-  }
-
-  if (currentValidation.valid) {
-    return { result: "keep", name: input.currentName, reasonCodes: [] };
-  }
-
-  const proposedValidation = validateDynamicTextName(input.proposedName ?? "");
-  if (proposedValidation.valid) {
-    return { result: "rename", name: input.proposedName, reasonCodes: [] };
-  }
-
-  return {
-    result: "confirm",
-    reasonCodes: ["no-valid-proposed-name", ...proposedValidation.errors],
-  };
+  return [...conflicts].sort();
 }
