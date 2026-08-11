@@ -22,13 +22,14 @@
     {
       "id": 2,
       "name": "migrate-review-and-reuse-layer-names",
-      "prompt": "给这个 Figma 链接里的动态文字命名。一个节点叫 lottery/remaining-count，另一个叫 文案/reward/name；同一个奖励名称字段在三个可写节点中重复出现。",
-      "expected_output": "迁移旧两段式名称，完整复核新三段式名称，并让相同业务字段复用同一名称。",
+      "prompt": "给这个 Figma 链接里的动态文字命名。一个节点叫 lottery/remaining-count，另一个叫 文案/reward/name；原文完全相同的奖励名称在三个可写节点中重复出现，业务字段和生成 HTML 也相同。",
+      "expected_output": "迁移旧两段式名称，完整复核新三段式名称，并在命名阶段让重复文案复用同一最终名称。",
       "files": [],
       "expectations": [
         "lottery/remaining-count 不能 keep，复核通过后迁移为 文案/lottery/remaining-count",
         "文案/reward/name 只有在一级板块、业务域、字段语义和冲突检查全部正确时才能 keep",
-        "相同奖励名称字段复用 文案/reward/name",
+        "按逐字相同的 characters 找到三个重复奖励文案节点",
+        "核实业务字段和完整 HTML 相同后复用 文案/reward/name",
         "预览可以合并重复字段，但写回覆盖三个可写文字图层",
         "只修改 rename 项的文字图层名称并回读确认",
         "写回后的最终回执只汇总扫描、已正确命名、跳过、待确认和失败数量，不输出全量结果表",
@@ -63,23 +64,23 @@
         "动态文本列原样输出 xx时xx分！，保留小写 xx 和全角感叹号！",
         "不把动态文本列中的 X、XX 或 xx 替换为 {{}}",
         "只有完整中文含义列使用中文翻译并把占位符表示为 {{}}",
-        "合并相同业务字段时仍逐项列出不同的 characters 原文"
+        "原文不同的节点不作为同一重复文案合并，仍逐项列出各自的 characters"
       ]
     },
     {
       "id": 5,
       "name": "split-page-center-keys-for-presentation-conflicts",
       "prompt": "给 Figma 动态文字命名并上传 PC。普通活动页和语音房画面都有 أفضل مستخدم: XXX جوهرة，业务含义相同，但生成 HTML 的字号分别是 0.22rem 和 0.20rem。",
-      "expected_output": "在任何 PC 写入前识别 HTML 冲突，保留普通活动页名称，并使用稳定语音房场景限定拆分另一个名称和 key。",
+      "expected_output": "在文案命名阶段识别 HTML 差异，保留普通活动页名称，并使用稳定语音房场景限定拆分另一个名称和 key；上传阶段不再去重或改名。",
       "files": [],
       "expectations": [
-        "先生成并比较两个节点的完整 HTML，再确定名称能否复用",
+        "在生成最终名称前比较两个重复文案节点的完整 HTML",
         "普通活动页保留 文案/ranking/jewel-count",
         "语音房版本使用 文案/voice-ranking/jewel-count",
         "PC key 分别为 ranking/jewel-count 和 voice-ranking/jewel-count",
         "不使用 small、0.20rem、节点 ID、Frame 编号或无语义数字拆分名称",
         "不得选择其中一个字号覆盖同一个 PC key",
-        "上传前检查完整 key 到 HTML 映射，确认无冲突后才执行上传并回读"
+        "上传前只校验命名阶段产出的完整 key 到 HTML 映射，不重新分组或改名，确认无冲突后执行上传并回读"
       ]
     },
     {
@@ -113,6 +114,21 @@
         "证据足够时及时收敛；范围内有针对性的读取仍不足时才 confirm，不猜测名称",
         "读写优先批量处理，但工具不适合批量时允许采用其他可靠方式",
         "无论采用何种搜索方式，都不越出用户范围，并完成名称校验、冲突检查和写后回读"
+      ]
+    },
+    {
+      "id": 8,
+      "name": "deduplicate-copy-during-naming-without-page-center",
+      "prompt": "只给这个 Figma 链接里的动态文字命名，不上传 Page Center。两个节点的 characters 都是 أفضل مستخدم: XXX جوهرة，业务字段相同，但生成 HTML 的字号分别是 0.22rem 和 0.20rem。",
+      "expected_output": "即使本次不上传 Page Center，也在命名阶段完成重复文案和 HTML 去重，直接生成以后可上传的最终名称。",
+      "files": [],
+      "expectations": [
+        "按逐字相同的 characters 将两个节点识别为重复文案",
+        "核实两个节点表示同一业务字段，不能只凭原文相同直接合并",
+        "在命名阶段读取 styled text segments 并比较完整 HTML",
+        "普通活动页使用 文案/ranking/jewel-count，语音房版本使用 文案/voice-ranking/jewel-count",
+        "HTML 不同的稳定场景拆名不依赖本次是否上传 Page Center",
+        "后续上传 Page Center 时复用现有名称，不再执行第二轮去重或改名"
       ]
     }
   ]

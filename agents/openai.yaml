@@ -1,4 +1,4 @@
 interface:
   display_name: "Figma 动态文本命名"
-  short_description: "识别 Figma 动态文本并生成或写回稳定的业务名称"
-  default_prompt: "使用 $figma-text-naming 处理这个 Figma Design 链接里的特效文本。"
+  short_description: "识别并去重 Figma 动态文本，生成或写回稳定业务名称"
+  default_prompt: "使用 $figma-text-naming 命名并去重这个 Figma Design 链接里的特效文本。"

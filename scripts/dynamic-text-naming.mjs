@@ -40,6 +40,27 @@ export function isDynamicTextCandidate(characters) {
   );
 }
 
+export function findDuplicateTextGroups(entries) {
+  if (!Array.isArray(entries)) {
+    throw new TypeError("text-entries-must-be-an-array");
+  }
+
+  const indexesByCharacters = new Map();
+  entries.forEach((entry, index) => {
+    if (typeof entry?.characters !== "string") {
+      throw new TypeError(`text-characters-must-be-a-string: ${index}`);
+    }
+
+    const indexes = indexesByCharacters.get(entry.characters) ?? [];
+    indexes.push(index);
+    indexesByCharacters.set(entry.characters, indexes);
+  });
+
+  return [...indexesByCharacters.entries()]
+    .filter(([, indexes]) => indexes.length > 1)
+    .map(([characters, indexes]) => ({ characters, indexes }));
+}
+
 export function assessDynamicTextCandidate(input) {
   if (isDynamicTextCandidate(input?.characters)) {
     return {
@@ -231,51 +252,56 @@ export function assessDynamicText(input) {
   }
 
   const currentValidation = validateDynamicTextName(input.currentName ?? "");
-  const sharedName = input.sameBusinessFieldName;
+  const sharedName = input.duplicateTextName;
 
   if (sharedName !== undefined) {
     const sharedValidation = validateDynamicTextName(sharedName);
     if (!sharedValidation.valid) {
       return {
         result: "confirm",
-        reasonCodes: ["shared-field-name-invalid", ...sharedValidation.errors],
+        reasonCodes: ["duplicate-text-name-invalid", ...sharedValidation.errors],
       };
     }
 
-    if (input.pcUploadRequested === true) {
-      if (typeof input.pcHtmlEquivalent !== "boolean") {
+    if (input.duplicateTextFieldVerified !== true) {
+      return {
+        result: "confirm",
+        reasonCodes: ["duplicate-text-field-not-verified"],
+      };
+    }
+
+    if (typeof input.duplicateHtmlEquivalent !== "boolean") {
+      return {
+        result: "confirm",
+        reasonCodes: ["duplicate-html-equivalence-not-verified"],
+      };
+    }
+
+    if (input.duplicateHtmlEquivalent === false) {
+      const variantName = input.styleVariantName;
+      if (typeof variantName !== "string" || variantName === sharedName) {
         return {
           result: "confirm",
-          reasonCodes: ["pc-html-equivalence-not-verified"],
+          reasonCodes: ["distinct-html-requires-stable-context-name"],
         };
       }
 
-      if (input.pcHtmlEquivalent === false) {
-        const variantName = input.presentationVariantName;
-        if (typeof variantName !== "string" || variantName === sharedName) {
-          return {
-            result: "confirm",
-            reasonCodes: ["distinct-pc-html-requires-stable-context-name"],
-          };
-        }
-
-        const variantValidation = validateDynamicTextName(variantName ?? "");
-        if (!variantValidation.valid) {
-          return {
-            result: "confirm",
-            reasonCodes: [
-              "distinct-pc-html-requires-stable-context-name",
-              ...variantValidation.errors,
-            ],
-          };
-        }
-
-        if (currentValidation.valid && input.currentName === variantName) {
-          return { result: "keep", name: variantName, reasonCodes: [] };
-        }
-
-        return { result: "rename", name: variantName, reasonCodes: [] };
+      const variantValidation = validateDynamicTextName(variantName ?? "");
+      if (!variantValidation.valid) {
+        return {
+          result: "confirm",
+          reasonCodes: [
+            "distinct-html-requires-stable-context-name",
+            ...variantValidation.errors,
+          ],
+        };
       }
+
+      if (currentValidation.valid && input.currentName === variantName) {
+        return { result: "keep", name: variantName, reasonCodes: [] };
+      }
+
+      return { result: "rename", name: variantName, reasonCodes: [] };
     }
 
     if (currentValidation.valid && input.currentName === sharedName) {
