@@ -56,6 +56,8 @@ compatibility: "高质量文案识别依赖 Figma 连接器：get_metadata 用�
 - `切图/*`、示意图、效果预览、标注和设计说明
 - `动效`、动画、PAG / SVGA / SVG 展示或制作区
 
+上述排除规则同样适用于 Scope 内嵌套出现的区域；遍历遇到这些节点时必须立即剪枝，不得读取其任何后代 Text。
+
 只有用户明确指定这些区域或其中节点时，才作为独立处理范围。
 
 处理范围确定后，再在已确定的范围内向下扫描全部 Text；不得使用 placeholder、当前名称、正则或文案内容预筛 Text。
@@ -176,7 +178,7 @@ placeholder、Variable、property、binding、同构槽位差异和状态变化�
 3. 组内 canonical HTML 全部相同：所有 Text 复用无后缀 `baseName`。
 4. 组内存在多个 canonical HTML：对去重后的完整 HTML 按 Unicode code point 升序排列，从 `-1` 开始连续分配；相同 HTML 使用相同后缀，所有样式版本都带后缀。
 5. 技术后缀不属于 semantic key，不受其一至两个业务单词限制。除此之外，禁止使用数字后缀区分位置、页面、状态或其他业务语义。
-6. 对每个最终 `rename / keep` Text，命名时同时保留其完整 styled segments，供后续上传 PC 时还原富文本样式，不得只保留 `characters` 纯文本。
+6. canonical HTML 只用于比较样式和决定技术后缀，不作为 PC 存储格式。对每个最终 `rename / keep` Text，命名时同时保留完整 styled segments；上传 PC 时另行转换为 `<span style="color: #...; font-size: 0.xxrem; font-weight: ...">...</span>` 形式的标准内联 CSS，并逐字保留现有字符内容，禁止写入 `data-style` 或 Figma 原始样式 JSON。
 
 已有名称与建议名称冲突时：
 
