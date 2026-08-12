@@ -81,7 +81,7 @@ compatibility: "高质量文案识别依赖 Figma 连接器：get_metadata 用�
 
 扫描时可以读取父级结构、同构节点、Instance / Component 关系、Variable、property、binding 等信息作为判断证据，但这些信息只用于后续判断，不直接决定 `name` 或 `skip`。
 
-完成扫描后，逐个 Text 或 Logical Field 进入下一步语义判断；最终每个 Text 必须收敛为：
+完成扫描后，逐个 Text 进入下一步语义判断；最终每个 Text 必须收敛为：
 
 - `name`
 - `skip`
@@ -103,20 +103,23 @@ compatibility: "高质量文案识别依赖 Figma 连接器：get_metadata 用�
    - 位于重复、同构的列表项中，只是该项的昵称、数量、积分、奖励名等内部属性 → `skip`
    - 位于非重复 UI 中，作为独立稳定的展示字段，且职责明确 → `name`
    - 无法判断属于哪种情况 → `confirm`
-6. 多个 Text 只有组合后才能形成一句完整文案时，不虚构新的 Text，也不把其中单独的 `x`、`xx`、数字等片段当成完整文案命名；按多 Text 规则处理。
 
 placeholder、Variable、property、binding、同构槽位差异和状态变化都是运行时证据，不是自动命名条件。不得因为没有 placeholder 就排除，也不得因为出现 placeholder 就直接命名。
 
 以下内容通常不命名：
 
-- 固定标题、按钮、标签、规则说明和不会被替换的普通文案
-- 重复列表项中的昵称、积分、奖励名、数量等内部属性值
+- 固定标题、按钮、标签、规则说明和不会被替换的普通文案；榜单规则即使支持运营配置，也按规则说明处理
+- 榜单条目和“我的排名”中的名次、积分 / 分数、昵称、成员名、队名 / 家族名、占位状态等榜单数据，无论页面只展示一条还是形成重复列表
+- 奖励或道具展示位中的道具名称、数量、倍率等道具数据，无论页面只展示一个还是形成重复列表
+- 其他重复列表项中的实体属性
 - 装饰、示例、标注和设计说明
 - 仅因 Variant、显隐、组件切换而变化，但 Text 内容本身不会被替换的文字
 
+非榜单、非道具且不属于重复实体属性的独立运行时字段，继续按前述规则判断是否需要命名。
+
 已有 `文案/...` 名称不等于已经正确。必须继续检查：
 
-- 当前 Text 是否真的属于运行时管理字段
+- 当前 Text 是否真的属于运行时管理字段；命中上述排除项时仍判为 `skip`，并报告为不应命名
 - 字段职责和业务语义是否明确
 - 名称是否符合 `references/naming-standard.md`
 - 参数边界是否正确
@@ -125,10 +128,10 @@ placeholder、Variable、property、binding、同构槽位差异和状态变化�
 
 ### 4. 生成名称
 
-完整名称格式：
+业务基础名称（`baseName`）格式：
 
 文案/${business-domain}/${semantic-key}
-完整名称只能有这三段。文案/ 后必须同时包含业务域和语义 key；文案/count、文案/task/、空段和额外路径层级都不合规。
+最终名称只能有这三段。文案/ 后必须同时包含业务域和语义 key；文案/count、文案/task/、空段和额外路径层级都不合规。只有同一 `baseName + characters` 存在多个 canonical HTML 时，才按 `references/naming-standard.md` 在第三段末尾追加 `-1`、`-2`、`-3` 技术后缀。
 
 按以下顺序决策：
 
@@ -142,7 +145,7 @@ placeholder、Variable、property、binding、同构槽位差异和状态变化�
 变量应用：
 
 - ${business-domain}：表示字段所属的一级业务模块，只使用一个简短英文单词，如 task、reward、ranking、lottery。
-- ${semantic-key}：表示字段本身的职责，使用 1～2 个英文单词，如 remaining-count、current-rank、countdown、progress。
+- ${semantic-key}：表示字段本身的职责，使用 1～2 个英文单词，如 remaining-count、current-rank、countdown、progress；样式技术后缀不属于 semantic key。
 - 文案中的运行时参数不直接进入名称。昵称、礼物名、数量、金额、等级、比例等只用于理解字段职责。
 - 当前展示的具体数字、日期、次数、Tab、状态和位置编号不作为名称的一部分。
 - 同一字段存在多个参数时，仍按整段文案的职责命名，不为每个参数分别生成 key。
@@ -164,7 +167,15 @@ placeholder、Variable、property、binding、同构槽位差异和状态变化�
 
 - **相同文案、相同语义**：`characters` 相同，字段职责和业务语义也相同，优先复用同一个 `baseName`。
 - **文字相同、语义不同**：即使 `characters` 完全一致，只要所在字段职责不同，就分别命名，不得仅因文字相同强行复用名称。
-- **语义相同、样式不同**：先使用相同 `baseName`，再按“重复文案处理”规则比较 canonical HTML；只有样式确实不同才使用 `-1`、`-2`、`-3` 技术后缀。
+- **语义相同、样式不同**：先使用相同 `baseName`；只有 `characters` 也相同，且完整 canonical HTML 确实不同时，才按下述规则使用技术后缀。
+
+### 重复文案处理
+
+1. 只对相同 `baseName + characters` 的 Text 归组；文字不同或业务语义不同的 Text 不得通过 canonical HTML 合并或分配后缀。
+2. 按 `references/naming-standard.md` 的统一序列化规则为组内每个 Text 生成完整 canonical HTML，不得手工拼接或只比较部分 styled segments。
+3. 组内 canonical HTML 全部相同：所有 Text 复用无后缀 `baseName`。
+4. 组内存在多个 canonical HTML：对去重后的完整 HTML 按 Unicode code point 升序排列，从 `-1` 开始连续分配；相同 HTML 使用相同后缀，所有样式版本都带后缀。
+5. 技术后缀不属于 semantic key，不受其一至两个业务单词限制。除此之外，禁止使用数字后缀区分位置、页面、状态或其他业务语义。
 
 已有名称与建议名称冲突时：
 
@@ -190,11 +201,11 @@ placeholder、Variable、property、binding、同构槽位差异和状态变化�
 - `unclassifiedTexts.length === 0`
 - 所有 `rename / keep` 名称都严格符合 `文案/${business-domain}/${semantic-key}` 三段格式
 - `business-domain` 必须符合 `references/naming-standard.md`
-- `semantic-key` 必须符合 lowercase kebab-case 和语义长度要求
+- `semantic-key` 必须符合 lowercase kebab-case 和语义长度要求；技术后缀只能通过“重复文案处理”生成
 - 不得残留中文业务域、空格、空段、额外斜杠或明显弱语义名称
 - 相同语义字段的名称复用已经完成检查
 - 相同 `baseName + characters` 的重复文案已经完成 canonical HTML 比较
-- 因样式不同生成的 `-1 / -2 / -3` 后缀稳定且没有遗漏
+- 因样式不同生成的 `-1 / -2 / -3` 后缀已按完整 canonical HTML 稳定排序、从 1 连续分配且所有版本均有后缀
 - 所有 `confirm` 都明确记录缺失的判断证据
 
 命名校验与处理分类相互独立，不能只检查 `rename`：
@@ -210,7 +221,7 @@ placeholder、Variable、property、binding、同构槽位差异和状态变化�
    不允许空段、额外 `/`、空格或非法字符。
 
 4. `business-domain` 只允许一个稳定英文单词。
-5. `semantic-key` 使用 lowercase kebab-case，并遵守 `references/naming-standard.md` 中的词数和固定名称规则。
+5. `semantic-key` 使用 lowercase kebab-case，并遵守 `references/naming-standard.md` 中的词数和固定名称规则。末尾数字只在能够证明属于同一 `baseName + characters` 样式组时按技术后缀校验；孤立或无归组证据的数字后缀不合规。
 6. 已有 `文案/...` 名称即使最终处理为 `skip / confirm`，只要格式或语义明显不合规，也必须记录：
 
 - `nodeId`
