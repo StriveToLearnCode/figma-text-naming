@@ -163,6 +163,20 @@ placeholder、Variable、property、binding、同构槽位差异和状态变化�
 - 不使用 tab1、section2、panel、page、left、top 等位置词区分语义。
 - 具体英文表达优先遵循 references/naming-standard.md，不要在本 Skill 中另建一套同义词表。
 
+命名时的数据读取：
+
+- 对最终属于需要命名的 Text（最终处理为 `rename / keep`），在生成名称时同步读取并保留完整 styled segments，不要等到后续导入 PageCenter 时再次回读 Figma。
+- 同时保留：
+  - `nodeId`
+  - 原始 `characters`
+  - 最终完整名称
+  - 去掉 `文案/` 前缀后的 key
+  - 参数化结果
+  - 完整 styled segments
+- styled segments 既用于后续重复文案的样式比较，也作为后续生成 PageCenter value 的原始输入。
+- 本步骤只读取和保留数据，不写入 PageCenter，也不修改 Text 的 `characters` 或样式。
+- 后续同一上下文要求写入 PageCenter 时，应直接复用本次已经读取的数据；只有数据缺失或 Text 在命名后发生变化时，才按 `nodeId` 补读对应节点，不重新扫描整个 Scope。
+
 ## 5. 处理状态、复用与冲突
 
 先区分三种容易混淆的情况：
@@ -178,7 +192,6 @@ placeholder、Variable、property、binding、同构槽位差异和状态变化�
 3. 组内 canonical HTML 全部相同：所有 Text 复用无后缀 `baseName`。
 4. 组内存在多个 canonical HTML：对去重后的完整 HTML 按 Unicode code point 升序排列，从 `-1` 开始连续分配；相同 HTML 使用相同后缀，所有样式版本都带后缀。
 5. 技术后缀不属于 semantic key，不受其一至两个业务单词限制。除此之外，禁止使用数字后缀区分位置、页面、状态或其他业务语义。
-6. canonical HTML 只用于比较样式和决定技术后缀，不作为 PC 存储格式。对每个最终 `rename / keep` Text，命名时同时保留完整 styled segments；上传 PC 时另行转换为 `<span style="color: #...; font-size: 0.xxrem; font-weight: ...">...</span>` 形式的标准内联 CSS，并逐字保留现有字符内容，禁止写入 `data-style` 或 Figma 原始样式 JSON。
 
 已有名称与建议名称冲突时：
 
@@ -338,8 +351,11 @@ const changes = [
   {
     id: "1:2",
     oldName: "旧名称",
+    nodeId: "1:2",
     newName: "文案/task/description",
+    key: "task/description",
     originalCharacters: "إرسال هدية XXX N مرة",
+    value: '<span style="...">إرسال هدية {{}} {{}} مرة</span>',
   },
 ];
 
