@@ -355,7 +355,7 @@ const changes = [
     newName: "文案/task/description",
     key: "task/description",
     originalCharacters: "إرسال هدية XXX N مرة",
-    value: '<span style="...">إرسال هدية {{}} {{}} مرة<br></span>',
+    value: '<span style="...">إرسال هدية رة<br>{{}} {{}} مرة</span>',
   },
 ];
 
