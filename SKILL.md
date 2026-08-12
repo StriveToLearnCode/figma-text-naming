@@ -176,7 +176,7 @@ placeholder、Variable、property、binding、同构槽位差异和状态变化�
 3. 组内 canonical HTML 全部相同：所有 Text 复用无后缀 `baseName`。
 4. 组内存在多个 canonical HTML：对去重后的完整 HTML 按 Unicode code point 升序排列，从 `-1` 开始连续分配；相同 HTML 使用相同后缀，所有样式版本都带后缀。
 5. 技术后缀不属于 semantic key，不受其一至两个业务单词限制。除此之外，禁止使用数字后缀区分位置、页面、状态或其他业务语义。
-6. 对每个最终 `rename / keep` Text，在命名阶段同时保留由完整 styled segments 生成的 canonical HTML，作为该名称对应的 PC value；后续上传 PC 必须使用该 HTML，禁止使用 `characters` 纯文本。
+6. 对每个最终 `rename / keep` Text，命名时同时保留其完整 styled segments，供后续上传 PC 时还原富文本样式，不得只保留 `characters` 纯文本。
 
 已有名称与建议名称冲突时：
 
