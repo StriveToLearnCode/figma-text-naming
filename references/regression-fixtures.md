@@ -191,13 +191,14 @@
 
 ## Fixture 10：样式复用
 
-多个 carrier 已由结构证明确认为同一业务语义。其中部分 canonical HTML 相同，部分不同。
+多个 carrier 已由结构证明确认为同一业务语义并共享 `baseName`。其中一组 `characters` 完全相同，但存在相同和不同的 canonical HTML；另有文字不同的 carrier。
 
 期望：
 
 - 所有等价字段先统一 shared semantic identity 和 `baseName`，不得独立起名后合并；
-- 相同 HTML 复用同名；
-- 不同 HTML 按完整字符串稳定排序并分配连续技术后缀；
+- 只在 `baseName` 和 `characters` 都相同时比较 canonical HTML；
+- 同一文字只有一种 HTML 时复用无后缀名称；存在多种 HTML 时按完整字符串稳定排序并为所有样式版本分配连续技术后缀，相同 HTML 使用相同后缀；
+- 文字不同不得因 HTML 不同而分配技术后缀；
 - 样式不参与动态资格、字段职责或业务语义判断。
 
 ## Fixture 11：固定配置值
