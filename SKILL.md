@@ -73,7 +73,9 @@ description: "按照 WePie 规范分析、审核和重命名 Figma 活动 UI 动
 
 ### 7. 报告
 
-按照 [报告格式](references/report-format.md) 先给结论，再给完整清单、统计、校验失败、确认项和实际写回结果。不得把未写回或写回失败伪装为成功。
+按照 [报告格式](references/report-format.md) 先给结论，再给精简明细表、统计、必要的校验失败、确认项和实际写回结果。内部清单仍须完整保留分类和校验证据；不得把未写回或写回失败伪装为成功。
+
+面向用户展示的每个 `nodeId` 都必须按 [报告格式](references/report-format.md) 渲染为可点击的 Figma 节点链接；保留原始 `nodeId` 作为链接文本，便于日志、写回和复核按 ID 精确对应。
 
 ## 不可变约束
 
